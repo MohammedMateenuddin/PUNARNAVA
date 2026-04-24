@@ -1,0 +1,33 @@
+{
+  "name": "e-waste",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.10",
+    "tailwindcss": "^3.4.19",
+    "typescript": "~6.0.2",
+    "vite": "^8.0.10"
+  },
+  "dependencies": {
+    "@tensorflow-models/mobilenet": "^2.1.1",
+    "@tensorflow/tfjs": "^4.22.0",
+    "@vitejs/plugin-react": "^6.0.1",
+    "canvas-confetti": "^1.9.4",
+    "countup.js": "^2.10.0",
+    "firebase": "^12.12.1",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^1.8.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "react-dropzone": "^15.0.0",
+    "react-router-dom": "^7.14.2",
+    "recharts": "^3.8.1"
+  }
+}
