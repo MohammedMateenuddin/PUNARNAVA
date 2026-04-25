@@ -15,7 +15,7 @@ const userLinks = [
 const recyclerLinks = [
   { to: '/', label: 'Market Overview', icon: '📈' },
   { to: '/scanner', label: 'AI Intake System', icon: '🔬' },
-  { to: '/dashboard', label: 'Global Analytics', icon: '🌍' },
+  { to: '/subscription', label: 'Subscription Plans', icon: '💳' },
   { to: '/profile', label: 'Profile', icon: '👤' },
 ];
 
@@ -121,6 +121,21 @@ export default function Sidebar({ collapsed, setCollapsed }) {
                 </div>
               </div>
             )}
+            {/* Demo Mode Toggle */}
+            <div className="flex items-center justify-between px-3 py-3 rounded-xl bg-[#0a0e17] border border-white/5 shadow-inner">
+              <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">App Mode</span>
+              <button 
+                onClick={() => setMode(mode === 'user' ? 'recycler' : 'user')}
+                className="relative inline-flex h-6 w-12 items-center rounded-full transition-colors focus:outline-none"
+                style={{ backgroundColor: mode === 'recycler' ? '#00ff88' : '#374151' }}
+              >
+                <span className="sr-only">Toggle Mode</span>
+                <span 
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${mode === 'recycler' ? 'translate-x-7' : 'translate-x-1'}`} 
+                />
+              </button>
+            </div>
+            
             <button
               onClick={() => logout()}
               className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 border border-danger-red/30 bg-danger-red/10 text-danger-red hover:bg-danger-red/20"

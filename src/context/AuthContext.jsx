@@ -10,10 +10,14 @@ const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
+  const [role, setRole] = useState(null); // 'user' | 'recycler' — immutable after login
   const [loading, setLoading] = useState(true);
 
-  // Helper to store/update user profile in Firestore
-  const saveUserRole = async (user, role, provider, providedName = '') => {
+  // ══════════════════════════════════════════════
+  // HELPERS
+  // ══════════════════════════════════════════════
+
+  const saveUserRole = async (user, selectedRole, provider, providedName = '') => {
     if (!db) return;
 
     const userRef = doc(db, 'users', user.uid);
@@ -24,35 +28,35 @@ export function AuthProvider({ children }) {
       displayName: providedName || user.displayName || user.email?.split('@')[0] || 'User',
       email: user.email || '',
       photoURL: user.photoURL || '',
-      role: role || 'user',
+      role: selectedRole,
       loginProvider: provider,
       lastSeen: serverTimestamp(),
     };
 
     if (!docSnap.exists()) {
-      // First time login - set default stats
       await setDoc(userRef, {
         ...baseData,
         totalPoints: 0,
         devicesRecycled: 0,
         co2Saved: 0,
+        totalValue: 0,
         rank: null,
         badge: "Eco Starter",
-        joinedAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
       });
     } else {
-      // Subsequent login - only update volatile fields
       await setDoc(userRef, {
         displayName: baseData.displayName,
         photoURL: baseData.photoURL,
         lastSeen: baseData.lastSeen,
-        loginProvider: baseData.loginProvider
+        loginProvider: baseData.loginProvider,
+        role: selectedRole, // Always update role on login
       }, { merge: true });
     }
   };
 
   const updateUserProfile = async (newName) => {
-    if (!auth.currentUser) return;
+    if (!auth?.currentUser) return;
     try {
       await updateProfile(auth.currentUser, { displayName: newName });
       if (db) {
@@ -60,6 +64,7 @@ export function AuthProvider({ children }) {
           displayName: newName
         }, { merge: true });
       }
+      setCurrentUser(prev => ({ ...prev, displayName: newName }));
     } catch (err) {
       console.error("Update profile error:", err);
       throw err;
@@ -76,12 +81,19 @@ export function AuthProvider({ children }) {
   };
 
   const calculatePoints = (scanResult) => {
-    let points = 100; // Base points
-    points += Math.round((scanResult.co2Saved || 0) * 50); // 50 per kg CO2
-    if (scanResult.estimatedValue > 500) points += 200; // Value bonus
+    let points = 100;
+    points += Math.round((scanResult.co2Saved || 0) * 50);
+    if (scanResult.estimatedValue > 500) points += 200;
     
-    // Daily streak bonus logic
-    const lastScan = currentUser?.lastScanDate?.toDate() || new Date(0);
+    let lastScan = new Date(0);
+    if (currentUser?.lastScanDate) {
+      if (typeof currentUser.lastScanDate.toDate === 'function') {
+        lastScan = currentUser.lastScanDate.toDate();
+      } else {
+        lastScan = new Date(currentUser.lastScanDate);
+      }
+    }
+    
     const today = new Date();
     if (lastScan.toDateString() !== today.toDateString()) {
       points += 150;
@@ -91,13 +103,30 @@ export function AuthProvider({ children }) {
   };
 
   const submitRecycling = async (scanResult) => {
-    if (!auth.currentUser || !db) return;
-    
     const points = calculatePoints(scanResult);
+    
+    // Optimistic UI update
+    const updatedUser = {
+      ...currentUser,
+      totalPoints: (currentUser?.totalPoints || 0) + points,
+      devicesRecycled: (currentUser?.devicesRecycled || 0) + 1,
+      co2Saved: (currentUser?.co2Saved || 0) + (scanResult.co2Saved || 0),
+      totalValue: (currentUser?.totalValue || 0) + (scanResult.estimatedValue || 0),
+      lastScanDate: new Date(),
+      globalRank: Math.floor(Math.random() * 10) + 1,
+      badge: getBadgeTier((currentUser?.totalPoints || 0) + points)
+    };
+    
+    setCurrentUser(updatedUser);
+    localStorage.setItem('punarnava_session', JSON.stringify(updatedUser));
+    
+    if (!auth?.currentUser || !db) {
+      return { points, newRank: updatedUser.globalRank };
+    }
+    
     const userRef = doc(db, 'users', auth.currentUser.uid);
     
     try {
-      // 1. Add to submissions subcollection
       const subRef = doc(collection(userRef, 'submissions'));
       await setDoc(subRef, {
         ...scanResult,
@@ -105,7 +134,6 @@ export function AuthProvider({ children }) {
         createdAt: serverTimestamp()
       });
 
-      // 2. Update user stats
       await setDoc(userRef, {
         totalPoints: increment(points),
         devicesRecycled: increment(1),
@@ -114,16 +142,16 @@ export function AuthProvider({ children }) {
         lastScanDate: serverTimestamp()
       }, { merge: true });
 
-      // 3. Recalculate rank (count users with more points)
-      const q = query(collection(db, 'users'), where('totalPoints', '>', (currentUser?.totalPoints || 0) + points));
+      const q = query(collection(db, 'users'), where('totalPoints', '>', updatedUser.totalPoints));
       const morePointsSnap = await getDocs(q);
       const newRank = morePointsSnap.size + 1;
 
-      // 4. Update rank and badge
       await setDoc(userRef, {
         globalRank: newRank,
-        badge: getBadgeTier((currentUser?.totalPoints || 0) + points)
+        badge: getBadgeTier(updatedUser.totalPoints)
       }, { merge: true });
+
+      setCurrentUser(prev => ({ ...prev, globalRank: newRank }));
 
       return { points, newRank };
     } catch (err) {
@@ -132,58 +160,55 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Helper to fetch user role
-  const getUserData = async (user) => {
-    if (db) {
-      try {
-        const docRef = doc(db, 'users', user.uid);
-        // Fast timeout to ensure we don't hang on login
-        const docSnap = await Promise.race([
-          getDoc(docRef),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1500))
-        ]);
-        if (docSnap.exists()) return docSnap.data();
-      } catch (err) {
-        console.warn("Firestore read error/timeout:", err.message);
-      }
-    }
-    const localRole = localStorage.getItem(`userRole_${user.uid}`) || 'user';
-    return {
-      uid: user.uid,
-      name: user.displayName || user.phoneNumber || 'User',
-      email: user.email || '',
-      role: localRole,
-      loginProvider: 'unknown'
-    };
-  };
+  // ══════════════════════════════════════════════
+  // MOCK FALLBACK
+  // ══════════════════════════════════════════════
 
-  // Mock Fallback
-  const mockLogin = (role) => {
-    const mockUser = { uid: 'mock-uid-123', name: 'Mock User', email: 'mock@demo.com', role, loginProvider: 'mock' };
+  const mockLogin = (selectedRole) => {
+    const mockUser = {
+      uid: 'demo-user-123',
+      displayName: selectedRole === 'recycler' ? 'GreenTech Recyclers' : 'Demo User',
+      email: selectedRole === 'recycler' ? 'info@greentech.com' : 'demo@punarnava.com',
+      role: selectedRole,
+      loginProvider: 'demo',
+      totalPoints: selectedRole === 'user' ? 1250 : 0,
+      devicesRecycled: selectedRole === 'user' ? 14 : 87,
+      co2Saved: selectedRole === 'user' ? 32.5 : 245,
+      totalValue: selectedRole === 'user' ? 8450 : 125000,
+      badge: selectedRole === 'user' ? getBadgeTier(1250) : 'N/A',
+      globalRank: selectedRole === 'user' ? 7 : null,
+      createdAt: new Date().toISOString(),
+      subscription: selectedRole === 'recycler' ? { plan: 'Enterprise Matrix', expiresAt: new Date(Date.now() + 14 * 86400000).toISOString() } : null,
+    };
     setCurrentUser(mockUser);
-    localStorage.setItem('mockSession', JSON.stringify(mockUser));
+    setRole(selectedRole);
+    localStorage.setItem('punarnava_role', selectedRole);
+    localStorage.setItem('punarnava_session', JSON.stringify(mockUser));
     return Promise.resolve();
   };
 
-  // Login Methods
-  const loginWithGoogle = async (role) => {
-    if (!auth) return mockLogin(role);
+  // ══════════════════════════════════════════════
+  // LOGIN METHODS — role is permanently set here
+  // ══════════════════════════════════════════════
+
+  const loginWithGoogle = async (selectedRole) => {
+    if (!auth) return mockLogin(selectedRole);
+    localStorage.setItem('punarnava_role', selectedRole);
     const result = await signInWithPopup(auth, googleProvider);
-    const userData = await saveUserRole(result.user, role, 'google');
-    setCurrentUser(userData);
+    saveUserRole(result.user, selectedRole, 'google').catch(err => console.error("BG Sync Error:", err));
   };
 
-  const loginWithGithub = async (role) => {
-    if (!auth) return mockLogin(role);
+  const loginWithGithub = async (selectedRole) => {
+    if (!auth) return mockLogin(selectedRole);
+    localStorage.setItem('punarnava_role', selectedRole);
     const result = await signInWithPopup(auth, githubProvider);
-    const userData = await saveUserRole(result.user, role, 'github');
-    setCurrentUser(userData);
+    saveUserRole(result.user, selectedRole, 'github').catch(err => console.error("BG Sync Error:", err));
   };
 
-  const loginWithEmail = async (email, password, role, isSignUp = false, name = '') => {
+  const loginWithEmail = async (email, password, selectedRole, isSignUp = false, name = '') => {
     if (!auth) {
       if (email === 'demo@punarnava.com' && password === 'demo1234') {
-        return mockLogin(role);
+        return mockLogin(selectedRole);
       } else {
         throw new Error('auth/invalid-credential');
       }
@@ -191,85 +216,87 @@ export function AuthProvider({ children }) {
     let result;
     if (isSignUp) {
       result = await createUserWithEmailAndPassword(auth, email, password);
-      await sendEmailVerification(result.user);
     } else {
       result = await signInWithEmailAndPassword(auth, email, password);
     }
-    const userData = await saveUserRole(result.user, role, 'email', name);
-    setCurrentUser(userData);
+    localStorage.setItem('punarnava_role', selectedRole);
+    await saveUserRole(result.user, selectedRole, 'email', name);
   };
 
   const resetPassword = async (email) => {
     if (!auth) return Promise.resolve();
+    const { sendPasswordResetEmail } = await import('firebase/auth');
     return sendPasswordResetEmail(auth, email);
   };
 
-  const setupRecaptcha = (buttonId) => {
-    if (!auth) return null;
-    try {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, buttonId, {
-        size: 'invisible'
-      });
-      return window.recaptchaVerifier;
-    } catch(err) {
-      console.warn("Recaptcha error:", err);
-      return null;
-    }
-  };
-
-  const loginWithPhone = async (phoneNumber, appVerifier) => {
-    if (!auth) {
-      window.mockConfirmationResult = { confirm: () => Promise.resolve({ user: { uid: 'phone-mock' } }) };
-      return window.mockConfirmationResult;
-    }
-    const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
-    window.confirmationResult = confirmationResult;
-    return confirmationResult;
-  };
-
-  const verifyPhoneOTP = async (otp, role) => {
-    if (!auth) return mockLogin(role);
-    const confirmationResult = window.confirmationResult || window.mockConfirmationResult;
-    const result = await confirmationResult.confirm(otp);
-    const userData = await saveUserRole(result.user, role, 'phone');
-    setCurrentUser(userData);
-  };
+  // ══════════════════════════════════════════════
+  // LOGOUT — clears role completely
+  // ══════════════════════════════════════════════
 
   const logout = async () => {
     if (auth) await signOut(auth);
+    localStorage.removeItem('punarnava_role');
+    localStorage.removeItem('punarnava_session');
     localStorage.removeItem('mockSession');
     setCurrentUser(null);
+    setRole(null);
   };
+
+  // ══════════════════════════════════════════════
+  // AUTH STATE LISTENER
+  // ══════════════════════════════════════════════
 
   useEffect(() => {
     if (!auth) {
-      const mockSession = localStorage.getItem('mockSession');
-      if (mockSession) setCurrentUser(JSON.parse(mockSession));
+      // Demo / mock mode
+      const savedSession = localStorage.getItem('punarnava_session');
+      const savedRole = localStorage.getItem('punarnava_role');
+      if (savedSession && savedRole) {
+        setCurrentUser(JSON.parse(savedSession));
+        setRole(savedRole);
+      }
       setLoading(false);
       return;
     }
 
     let unsubscribeProfile = () => {};
 
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // Start real-time profile listener
-        unsubscribeProfile = onSnapshot(doc(db, 'users', user.uid), (doc) => {
-          if (doc.exists()) {
-            setCurrentUser({ ...user, ...doc.data() });
-          } else {
-            // Fallback if doc doesn't exist yet (e.g. still creating)
-            setCurrentUser(user);
+        // INSTANT: Set user and fallback role immediately
+        const fallbackRole = localStorage.getItem('punarnava_role') || 'user';
+        setRole(fallbackRole);
+        setCurrentUser(prev => prev?.uid === user.uid ? prev : { ...user, role: fallbackRole });
+        setLoading(false); // Resolve loading IMMEDIATELY
+
+        // BACKGROUND: Read role from Firestore to ensure sync
+        getDoc(doc(db, 'users', user.uid)).then(snap => {
+          if (snap.exists()) {
+            const data = snap.data();
+            const resolvedRole = data.role || fallbackRole;
+            setRole(resolvedRole);
+            setCurrentUser(prev => ({ ...prev, ...data, role: resolvedRole }));
           }
-          setLoading(false);
-        }, (err) => {
-          console.warn("Profile listener error:", err);
-          setCurrentUser(user);
-          setLoading(false);
-        });
+        }).catch(err => console.warn("Role fetch error:", err.message));
+
+        // Background: live sync profile
+        try {
+          unsubscribeProfile = onSnapshot(doc(db, 'users', user.uid), (snap) => {
+            if (snap.exists()) {
+              setCurrentUser(prev => ({ ...prev, ...snap.data() }));
+            }
+          }, (err) => {
+            console.warn("Profile sync skipped:", err.message);
+          });
+        } catch (e) {
+          console.warn("Firestore listener failed:", e.message);
+        }
+
+        setLoading(false);
       } else {
         unsubscribeProfile();
         setCurrentUser(null);
+        setRole(null);
         setLoading(false);
       }
     });
@@ -282,12 +309,10 @@ export function AuthProvider({ children }) {
 
   const value = {
     currentUser,
+    role,
     loginWithGoogle,
     loginWithGithub,
     loginWithEmail,
-    setupRecaptcha,
-    loginWithPhone,
-    verifyPhoneOTP,
     logout,
     resetPassword,
     updateUserProfile,

@@ -54,7 +54,7 @@ export default function AnimatedCounter({ end, duration = 2500, prefix = '', suf
   }, [end, duration, prefix, suffix, decimals]);
 
   return (
-    <span ref={ref} className="font-display font-bold tabular-nums tracking-tight" style={{ fontVariantNumeric: 'tabular-nums' }}>
+    <span ref={ref} className="font-bold tabular-nums tracking-tight" style={{ fontVariantNumeric: 'tabular-nums' }}>
       0
     </span>
   );

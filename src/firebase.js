@@ -25,7 +25,11 @@ import {
   where, 
   orderBy, 
   limit, 
-  serverTimestamp 
+  serverTimestamp,
+  increment,
+  getDocs,
+  deleteDoc,
+  updateDoc
 } from "firebase/firestore";
 
 // Replace these with your actual Firebase config from the Firebase Console
@@ -48,6 +52,7 @@ try {
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);
+  window.db = db;
   googleProvider = new GoogleAuthProvider();
   githubProvider = new GithubAuthProvider();
   auth.useDeviceLanguage();
@@ -64,5 +69,5 @@ export {
   signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword,
   RecaptchaVerifier, signInWithPhoneNumber, signOut, onAuthStateChanged,
   sendEmailVerification, sendPasswordResetEmail, updateProfile,
-  doc, setDoc, getDoc, onSnapshot, collection, query, where, orderBy, limit, serverTimestamp, increment
+  doc, setDoc, getDoc, onSnapshot, collection, query, where, orderBy, limit, serverTimestamp, increment, getDocs, deleteDoc, updateDoc
 };

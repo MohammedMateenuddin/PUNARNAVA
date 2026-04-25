@@ -33,53 +33,38 @@ export async function detectDeviceFromImage(imageElement) {
 
     // Run prediction
     const predictions = await model.classify(imageElement);
-    console.log('AI Predictions:', predictions);
+    console.log('Neural Output:', predictions);
 
-    // Combine top prediction classes
+    // 1. Get the most confident prediction
+    const topMatch = predictions[0];
+    const topLabel = topMatch.className.toLowerCase();
+
+    // 2. Scan our hardware database for a rawLabel match
+    // We search through our devices to see if any of their rawLabels are contained in the AI output
+    const exactMatch = devices.find(device => 
+      device.rawLabels?.some(label => topLabel.includes(label))
+    );
+
+    if (exactMatch) {
+      console.log(`Matched exact model: ${exactMatch.name}`);
+      return { ...exactMatch, rawAIClass: topMatch.className };
+    }
+
+    // 3. Fallback to keyword search if no exact rawLabel match
     const keywordsStr = predictions.map(p => p.className.toLowerCase()).join(' ');
+    
+    if (keywordsStr.match(/mouse|joystick/i)) return { ...devices.find(d => d.id === 'mouse'), rawAIClass: 'Peripheral Input' };
+    if (keywordsStr.match(/printer|copier/i)) return { ...devices.find(d => d.id === 'printer'), rawAIClass: 'Office Hardware' };
+    if (keywordsStr.match(/camera|lens/i)) return { ...devices.find(d => d.id === 'camera'), rawAIClass: 'Optical Device' };
+    if (keywordsStr.match(/headphone|speaker/i)) return { ...devices.find(d => d.id === 'headphones'), rawAIClass: 'Audio Output' };
+    if (keywordsStr.match(/phone|cellular|hand-held/i)) return { ...devices.find(d => d.id === 'smartphone'), rawAIClass: 'Mobile Device' };
+    if (keywordsStr.match(/laptop|notebook|computer/i)) return { ...devices.find(d => d.id === 'laptop'), rawAIClass: 'Computing Unit' };
+    if (keywordsStr.match(/tablet|ipad/i)) return { ...devices.find(d => d.id === 'tablet'), rawAIClass: 'Tablet PC' };
+    if (keywordsStr.match(/monitor|screen|display/i)) return { ...devices.find(d => d.id === 'monitor'), rawAIClass: 'Display Unit' };
 
-    // If it's a screenshot of a website/app, MobileNet often predicts "web site" or "screen"
-    if (keywordsStr.match(/web site|website|menu|comic book/i)) {
-      console.log('Detected a screenshot/website, rejecting');
-      return null;
-    }
-
-    // Match more specific peripherals first to avoid broad overlap (like "computer mouse" matching "computer")
-    if (keywordsStr.match(/mouse|joystick/i)) {
-      return devices.find(d => d.id === 'mouse');
-    }
-    if (keywordsStr.match(/printer|copier|photocopier/i)) {
-      return devices.find(d => d.id === 'printer');
-    }
-    if (keywordsStr.match(/camera|lens|reflex/i)) {
-      return devices.find(d => d.id === 'camera');
-    }
-    if (keywordsStr.match(/headphone|earphone|headset|speaker/i)) {
-      return devices.find(d => d.id === 'headphones');
-    }
-
-    // General devices
-    if (keywordsStr.match(/phone|cellular|ipod|dial/i)) {
-      return devices.find(d => d.id === 'smartphone');
-    }
-    if (keywordsStr.match(/laptop|notebook|computer/i)) {
-      return devices.find(d => d.id === 'laptop');
-    }
-    if (keywordsStr.match(/keyboard|typewriter/i)) {
-      return devices.find(d => d.id === 'keyboard');
-    }
-    if (keywordsStr.match(/tablet|ipad/i)) {
-      return devices.find(d => d.id === 'tablet');
-    }
-    if (keywordsStr.match(/monitor|television|display|desktop/i)) {
-      return devices.find(d => d.id === 'monitor');
-    }
-
-    // Default to smartphone if no confident match
-    console.log('No exact match, defaulting to random or smartphone');
-    return null; // Let the caller decide the fallback
+    return null;
   } catch (error) {
-    console.error('AI Detection Error:', error);
+    console.error('AI Intelligence Error:', error);
     return null;
   }
 }

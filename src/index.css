@@ -112,3 +112,28 @@ body {
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
 }
+
+/* ═══════════════════════════════════════════════════
+   MOBILE RESPONSIVE — < 768px
+   ═══════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+  /* Prevent horizontal overflow */
+  html { -webkit-text-size-adjust: 100%; }
+  body { overflow-x: hidden; }
+
+  /* Input font size — prevents iOS zoom on focus */
+  input, select, textarea { font-size: 16px !important; }
+
+  /* Touch targets — minimum 44px */
+  button, a { min-height: 44px; }
+
+  /* Ticker bar — smaller on mobile */
+  .animate-ticker-scroll { animation-duration: 20s; }
+}
+
+/* ═══════════════════════════════════════════════════
+   TABLET — 768px to 1024px
+   ═══════════════════════════════════════════════════ */
+@media (min-width: 768px) and (max-width: 1024px) {
+  body { font-size: 15px; }
+}

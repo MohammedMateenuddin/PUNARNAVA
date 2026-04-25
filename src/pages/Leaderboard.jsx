@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db, collection, query, orderBy, limit, onSnapshot } from '../firebase';
 import { useAuth } from '../context/AuthContext';
+import { useLang } from '../context/LanguageContext';
 import { badges as badgeList } from '../data/mockData';
 
 const fadeUp = { hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6 } } };
@@ -28,9 +29,9 @@ const PodiumItem = ({ user, rank, delay }) => {
       initial={{ opacity: 0, scale: 0.9, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ delay, duration: 0.6, type: 'spring' }}
-      className={`flex flex-col items-center ${isWinner ? 'order-2 -mt-8' : rank === 2 ? 'order-1 mt-4' : 'order-3 mt-8'}`}
+      className={`flex flex-col items-center ${isWinner ? 'order-2 -mt-4 sm:-mt-8' : rank === 2 ? 'order-1 mt-2 sm:mt-4' : 'order-3 mt-4 sm:mt-8'}`}
     >
-      <div className={`relative mb-4 ${isWinner ? 'w-24 h-24' : 'w-20 h-20'}`}>
+      <div className={`relative mb-4 ${isWinner ? 'w-16 h-16 sm:w-24 sm:h-24' : 'w-14 h-14 sm:w-20 sm:h-20'}`}>
         <div className={`w-full h-full rounded-full border-4 ${rank === 1 ? 'border-neon-green p-1' : rank === 2 ? 'border-electric-blue p-1' : 'border-warning-orange p-1'}`}>
           {user.photoURL ? (
             <img src={user.photoURL} alt="" className="w-full h-full rounded-full object-cover" />
@@ -44,7 +45,7 @@ const PodiumItem = ({ user, rank, delay }) => {
           {rankIcon(rank)}
         </div>
       </div>
-      <h3 className={`font-bold text-center truncate w-32 ${isWinner ? 'text-lg text-white' : 'text-sm text-text-primary'}`}>
+      <h3 className={`font-bold text-center truncate w-20 sm:w-32 ${isWinner ? 'text-sm sm:text-lg text-white' : 'text-xs sm:text-sm text-text-primary'}`}>
         {user.displayName || 'User'}
       </h3>
       <p className="text-neon-green font-mono font-bold text-sm">{(user.totalPoints || 0).toLocaleString()} pts</p>
@@ -56,11 +57,52 @@ const PodiumItem = ({ user, rank, delay }) => {
 };
 
 export default function Leaderboard() {
+  const { t } = useLang();
   const { currentUser } = useAuth();
-  const [topUsers, setTopUsers] = useState([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const dummyUsers = [
+    { id: 'dummy-1', displayName: 'Priya Sharma', totalPoints: 14500, badge: 'Eco Legend', devicesRecycled: 112, co2Saved: 340 },
+    { id: 'dummy-2', displayName: 'Rahul Verma', totalPoints: 9200, badge: 'Urban Miner', devicesRecycled: 85, co2Saved: 210 },
+    { id: 'dummy-3', displayName: 'Anita Patel', totalPoints: 7800, badge: 'Urban Miner', devicesRecycled: 64, co2Saved: 185 },
+    { id: 'dummy-4', displayName: 'Vikram Singh', totalPoints: 5400, badge: 'Eco Legend', devicesRecycled: 42, co2Saved: 120 },
+    { id: 'dummy-5', displayName: 'Neha Gupta', totalPoints: 4100, badge: 'Circuit Sage', devicesRecycled: 38, co2Saved: 95 },
+    { id: 'dummy-6', displayName: 'Arjun Das', totalPoints: 2200, badge: 'Circuit Sage', devicesRecycled: 18, co2Saved: 45 },
+    { id: 'dummy-7', displayName: 'Riya Kapoor', totalPoints: 1100, badge: 'Green Guardian', devicesRecycled: 10, co2Saved: 22 },
+  ];
 
+  // Build a ranked list instantly from dummy + current user
+  const buildRankedList = (baseUsers) => {
+    let users = [...baseUsers];
+    if (currentUser && currentUser.totalPoints > 0) {
+      users = users.filter(u => u.id !== currentUser.uid);
+      users.push({
+        id: currentUser.uid,
+        displayName: currentUser.displayName || 'You',
+        totalPoints: currentUser.totalPoints,
+        badge: currentUser.badge || 'Eco Starter',
+        devicesRecycled: currentUser.devicesRecycled || 0,
+        co2Saved: currentUser.co2Saved || 0,
+        photoURL: currentUser.photoURL,
+      });
+    }
+    users.sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
+    return users.map((u, i) => ({ ...u, rank: i + 1 }));
+  };
+
+  // INSTANT: show dummy data immediately — no loading spinner
+  const [topUsers, setTopUsers] = useState(() => buildRankedList(dummyUsers));
+  const [totalCount, setTotalCount] = useState(topUsers.length);
+  const [loading, setLoading] = useState(false);
+
+  // Re-rank when currentUser points change (after a scan)
+  useEffect(() => {
+    setTopUsers(prev => {
+      const merged = buildRankedList(prev.length > 0 ? prev : dummyUsers);
+      setTotalCount(merged.length);
+      return merged;
+    });
+  }, [currentUser?.totalPoints]);
+
+  // BACKGROUND: layer Firebase data on top if available
   useEffect(() => {
     if (!db) return;
 
@@ -71,14 +113,25 @@ export default function Leaderboard() {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const users = snapshot.docs.map((doc, i) => ({
+      let users = snapshot.docs.map(doc => ({
         id: doc.id,
-        rank: i + 1,
         ...doc.data()
       }));
-      setTopUsers(users);
-      setTotalCount(snapshot.size); // This is just the size of top 50, but we'll show it as a baseline
-      setLoading(false);
+      
+      // Pad with dummies if sparse
+      if (users.length < 5) {
+        dummyUsers.forEach(dummy => {
+          if (!users.find(u => u.id === dummy.id)) {
+            users.push(dummy);
+          }
+        });
+      }
+
+      const ranked = buildRankedList(users);
+      setTopUsers(ranked);
+      setTotalCount(ranked.length);
+    }, (err) => {
+      console.warn("Leaderboard query failed:", err.message);
     });
 
     return unsubscribe;
@@ -93,9 +146,9 @@ export default function Leaderboard() {
       <div className="max-w-6xl mx-auto">
         <motion.div initial="hidden" animate="visible" variants={stagger}>
           {/* Header */}
-          <motion.div variants={fadeUp} className="text-center mb-16">
-            <h1 className="font-display text-4xl sm:text-5xl font-black neon-text mb-4 tracking-tighter">GLOBAL RECYCLING ARENA</h1>
-            <p className="text-text-secondary max-w-xl mx-auto">Competition fuels sustainability. Track the world's most dedicated eco-warriors.</p>
+          <motion.div variants={fadeUp} className="text-center mb-8 sm:mb-16">
+            <h1 className="font-display text-2xl sm:text-4xl md:text-5xl font-black neon-text mb-4 tracking-tighter uppercase">{t('leaderboardTitle')}</h1>
+            <p className="text-text-secondary max-w-xl mx-auto text-sm px-4">{t('leaderboardSubtitle')}</p>
             {currentUser?.globalRank && (
               <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="mt-6 inline-block px-6 py-2 rounded-full bg-neon-green/10 border border-neon-green/20">
                  <p className="text-sm font-bold text-white">Your Rank: <span className="text-neon-green">#{currentUser.globalRank}</span> out of thousands</p>
@@ -105,7 +158,7 @@ export default function Leaderboard() {
 
           {/* Podium */}
           {!loading && podiumUsers.length > 0 && (
-            <div className="flex flex-wrap justify-center items-end gap-8 md:gap-16 mb-20 px-4">
+            <div className="flex flex-wrap justify-center items-end gap-4 sm:gap-8 md:gap-16 mb-12 sm:mb-20 px-4">
               {podiumUsers.map((user, i) => (
                 <PodiumItem key={user.id} user={user} rank={user.rank} delay={i * 0.2} />
               ))}
@@ -161,7 +214,7 @@ export default function Leaderboard() {
 
                       <div className="flex-shrink-0 text-right">
                         <div className="font-display font-black text-base text-neon-green">{(user.totalPoints || 0).toLocaleString()}</div>
-                        <div className="text-[9px] text-text-secondary uppercase font-bold tracking-tighter">points</div>
+                        <div className="text-[9px] text-text-secondary uppercase font-bold tracking-tighter">{t('points')}</div>
                       </div>
                     </motion.div>
                   );
@@ -211,7 +264,7 @@ export default function Leaderboard() {
               </div>
             </motion.div>
 
-            {/* Sidebar Column */}
+             {/* Sidebar Column */}
             <motion.div variants={fadeUp} className="space-y-8">
               {/* Achievement Badges Guide */}
               <div className="glass-card p-6">
@@ -220,24 +273,29 @@ export default function Leaderboard() {
                 </h3>
                 <div className="space-y-4">
                    {[
-                     { name: 'Eco Legend', points: '4000+', icon: '🏆', color: '#ff6b6b' },
-                     { name: 'Urban Miner', points: '2000+', icon: '⛏️', color: '#FFD700' },
-                     { name: 'Circuit Sage', points: '1000+', icon: '🧠', color: '#00d4ff' },
-                     { name: 'Green Guardian', points: '500+', icon: '🌱', color: '#7bed9f' },
-                     { name: 'Eco Warrior', points: '200+', icon: '🛡️', color: '#00ff88' },
-                     { name: 'Eco Starter', points: '0+', icon: '🌿', color: '#a29bfe' },
-                   ].map((badge, i) => (
-                     <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all">
-                        <div className="flex items-center gap-3">
-                           <span className="text-xl">{badge.icon}</span>
-                           <div>
-                              <p className="text-xs font-bold text-white">{badge.name}</p>
-                              <p className="text-[10px] text-text-secondary">{badge.points} points</p>
-                           </div>
-                        </div>
-                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: badge.color }} />
-                     </div>
-                   ))}
+                     { name: 'Eco Legend', points: 4000, icon: '🏆', color: '#ff6b6b' },
+                     { name: 'Urban Miner', points: 2000, icon: '⛏️', color: '#FFD700' },
+                     { name: 'Circuit Sage', points: 1000, icon: '🧠', color: '#00d4ff' },
+                     { name: 'Green Guardian', points: 500, icon: '🌱', color: '#7bed9f' },
+                     { name: 'Eco Warrior', points: 200, icon: '🛡️', color: '#00ff88' },
+                     { name: 'Eco Starter', points: 0, icon: '🌿', color: '#a29bfe' },
+                   ].map((badge, i) => {
+                     const isUnlocked = (currentUser?.totalPoints || 0) >= badge.points;
+                     return (
+                       <div key={i} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${isUnlocked ? 'bg-white/[0.05] border-white/20' : 'bg-white/[0.01] border-white/5 opacity-50 grayscale hover:grayscale-0'}`}>
+                          <div className="flex items-center gap-3">
+                             <span className="text-xl">{badge.icon}</span>
+                             <div>
+                                <p className={`text-xs font-bold ${isUnlocked ? 'text-white' : 'text-gray-400'}`}>{badge.name}</p>
+                                <p className="text-[10px] text-text-secondary">{badge.points}+ points</p>
+                             </div>
+                          </div>
+                          <div className="flex items-center justify-center w-6 h-6 rounded-full" style={{ backgroundColor: isUnlocked ? badge.color : 'transparent', border: isUnlocked ? 'none' : '1px solid rgba(255,255,255,0.1)' }}>
+                            {isUnlocked && <span className="text-deep-dark text-[10px] font-black">✓</span>}
+                          </div>
+                       </div>
+                     );
+                   })}
                 </div>
               </div>
 

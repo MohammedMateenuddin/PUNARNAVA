@@ -4,10 +4,68 @@ import { useDropzone } from 'react-dropzone';
 import { useNavigate } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { useApp } from '../context/AppContext';
+import { useLang } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { devices, recyclers } from '../data/mockData';
 import { playScanComplete } from '../utils/sound';
-import { loadAIModel, detectDeviceFromImage } from '../utils/aiMatcher';
+import { scanDeviceWithRetry, lastApiError, formatRate } from '../utils/geminiScanner';
+import { fetchDisassemblyVideo } from '../utils/youtubeApi';
+
+function isLocalIP() {
+  const host = window.location.hostname;
+  return (
+    host.startsWith("192.168.") ||
+    host.startsWith("10.") ||
+    host.startsWith("172.") ||
+    host === "127.0.0.1"
+  );
+}
+
+function CameraErrorScreen({ error, onRetry, onUpload, onSimulate }) {
+  const messages = {
+    PERMISSION_DENIED: {
+      title: "Camera Access Blocked",
+      desc: "You previously blocked camera access. Click the camera icon in your browser address bar and set it to 'Allow', then click Retry.",
+      showRetry: true,
+    },
+    BROWSER_UNSUPPORTED: {
+      title: "Browser Unsupported",
+      desc: "Try opening PUNARNAVA in Chrome or Firefox.",
+      showRetry: false,
+    },
+    CAMERA_UNAVAILABLE: {
+      title: "No Camera Detected",
+      desc: "Your device has no accessible camera. Upload a device photo or use the AI simulator.",
+      showRetry: true,
+    },
+    LOCALHOST_REQUIRED: {
+      title: "Camera Blocked on Local IP",
+      desc: 'Open the app at "localhost:5175" instead of your IP address. Camera requires localhost or HTTPS.',
+      showRetry: false,
+    }
+  };
+  const msg = messages[error] || messages.CAMERA_UNAVAILABLE;
+  return (
+    <div className="flex-grow flex flex-col items-center justify-center p-12 text-center min-h-[400px]">
+      <div className="w-24 h-24 rounded-3xl bg-[#00ffc0]/10 border border-[#00ffc0]/20 flex items-center justify-center text-5xl mb-8 mx-auto">🔬</div>
+      <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-tighter">AI Scanner <span className="text-[#00ffc0]">Ready</span></h3>
+      <p className="text-text-secondary text-sm mb-8 font-medium max-w-md">{msg.desc}</p>
+      <div className="flex flex-col sm:flex-row gap-4 justify-center w-full max-w-md">
+        <button onClick={onSimulate} className="flex-1 py-3 rounded-2xl bg-[#00ffc0] text-deep-dark font-black text-xs uppercase tracking-widest hover:scale-105 shadow-[0_0_20px_rgba(0,255,192,0.4)] transition-all">
+          ✨ Start Simulation
+        </button>
+        <button onClick={onUpload} className="flex-1 py-3 rounded-2xl bg-white/5 border border-white/10 text-white font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-all">
+          Upload Image
+        </button>
+      </div>
+      {msg.showRetry && (
+        <button onClick={onRetry} className="mt-4 px-8 py-3 rounded-2xl bg-white/5 border border-white/10 text-white/60 font-bold text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all">
+          Retry Camera
+        </button>
+      )}
+    </div>
+  );
+}
 
 const fadeUp = { hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0 } };
 
@@ -21,8 +79,14 @@ function MaterialBar({ mat, delay }) {
   return (
     <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay, duration: 0.5 }} className="mb-3">
       <div className="flex justify-between text-xs mb-1">
-        <span className="text-text-primary font-bold uppercase tracking-wider">{mat.name}</span>
-        <span className="text-text-secondary font-mono">{mat.amount} {mat.unit}</span>
+        <div className="flex items-center gap-2">
+           <span className="text-white font-black uppercase tracking-wider">{mat.name}</span>
+           {mat.ratePerGram && <span className="text-[9px] text-gray-500 tracking-widest uppercase">@ {formatRate(mat.ratePerGram)}</span>}
+        </div>
+        <div className="text-right">
+           <span className="text-gray-400 font-mono">{mat.amount} {mat.unit}</span>
+           {mat.scrapValueINR > 0 && <span className="text-[#00ffc0] font-bold ml-2">₹{mat.scrapValueINR}</span>}
+        </div>
       </div>
       <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
         <motion.div
@@ -38,7 +102,8 @@ function MaterialBar({ mat, delay }) {
 }
 
 export default function Scanner() {
-  const { mode, demoMode, scanResult, performScan, loadDemoResult, language, setLanguage } = useApp();
+  const { scanResult, performScan, loadDemoResult } = useApp();
+  const { t, lang: selectedLang } = useLang();
   const { submitRecycling, calculatePoints } = useAuth();
   const navigate = useNavigate();
   
@@ -48,36 +113,80 @@ export default function Scanner() {
   const [error, setError] = useState(null);
   const [useCamera, setUseCamera] = useState(true);
   const [facingMode, setFacingMode] = useState('environment');
-  const [cameraError, setCameraError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [rewardData, setRewardData] = useState(null);
+  const [activeStep, setActiveStep] = useState(0);
+  const [disassemblyVideo, setDisassemblyVideo] = useState(null);
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
 
+  // Google Maps deep-links for recyclers
+  const recyclerMapLinks = {
+    1: 'https://google.com/maps/search/Electronic+City+Phase+1+Bangalore',
+    2: 'https://google.com/maps/search/Whitefield+Main+Rd+Bangalore',
+    3: 'https://google.com/maps/search/Koramangala+4th+Block+Bangalore',
+    4: 'https://google.com/maps/search/HSR+Layout+Sector+2+Bangalore',
+    5: 'https://google.com/maps/search/Peenya+Industrial+Area+Bangalore',
+  };
+
   useEffect(() => {
-    loadAIModel();
+    if (isLocalIP()) {
+      setError("LOCALHOST_REQUIRED");
+      setUseCamera(false);
+      return;
+    }
     if (useCamera) startCamera();
     return () => stopCamera();
   }, [useCamera, facingMode]);
 
   const startCamera = async () => {
-    try {
-      setCameraError(false);
-      if (streamRef.current) stopCamera();
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: facingMode, width: { ideal: 1280 }, height: { ideal: 720 } }
-      });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        streamRef.current = stream;
-      }
-    } catch (err) {
-      setCameraError(true);
+    setError(null);
+    if (streamRef.current) stopCamera();
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setError("BROWSER_UNSUPPORTED");
       setUseCamera(false);
+      return;
     }
+
+    try {
+      const permStatus = await navigator.permissions.query({ name: "camera" });
+      if (permStatus.state === "denied") {
+        setError("PERMISSION_DENIED");
+        setUseCamera(false);
+        return;
+      }
+    } catch (e) {
+      // Permissions API not supported on all browsers
+    }
+    
+    const constraintsList = [
+      { video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 }, height: { ideal: 720 } } },
+      { video: { facingMode: "user" } },
+      { video: true }
+    ];
+
+    for (const constraints of constraintsList) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          streamRef.current = stream;
+          setUseCamera(true);
+          return;
+        }
+      } catch (err) {
+        console.warn("Camera attempt failed:", err.name, err.message);
+        continue;
+      }
+    }
+
+    // If all constraints failed
+    setError("CAMERA_UNAVAILABLE");
+    setUseCamera(false);
   };
 
   const stopCamera = () => {
@@ -90,6 +199,13 @@ export default function Scanner() {
   const captureImage = async () => {
     if (!videoRef.current || !canvasRef.current) return;
     const video = videoRef.current;
+    
+    // Ensure video is actually playing and has dimensions
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      console.warn("Viewfinder initializing...");
+      return;
+    }
+
     const canvas = canvasRef.current;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -110,6 +226,16 @@ export default function Scanner() {
     }
   }, []);
 
+  // Fetch disassembly video when a valid scan result is detected
+  useEffect(() => {
+    if (scanResult && scanResult.name) {
+      setDisassemblyVideo(null); // Reset video for new scan
+      fetchDisassemblyVideo(scanResult.name).then(videoData => {
+        if (videoData) setDisassemblyVideo(videoData);
+      });
+    }
+  }, [scanResult]);
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: { 'image/*': [] }, maxFiles: 1 });
 
   async function startScan(file, imageElement) {
@@ -117,45 +243,64 @@ export default function Scanner() {
     setShowResults(false);
     setError(null);
     try {
-      const detectedDevice = await detectDeviceFromImage(imageElement);
-      setTimeout(() => {
-        if (detectedDevice) {
-          performScan(file, detectedDevice.id);
-          playScanComplete();
-          setScanning(false);
-          setShowResults(true);
-        } else {
-          setScanning(false);
-          setError('No electronic waste detected. Point camera closer or check lighting.');
-        }
-      }, 1500);
+      const result = await scanDeviceWithRetry(file);
+      
+      if (result && result.isElectronicDevice) {
+        performScan(file, null, result);
+        playScanComplete();
+        setScanning(false);
+        setShowResults(true);
+      } else if (result && !result.isElectronicDevice) {
+        setScanning(false);
+        setError('NON-ELECTRONIC: The neural engine identified this as a non-electronic item. Please scan e-waste only.');
+      } else {
+        setScanning(false);
+        setError('NEURAL MISMATCH: No device detected. Ensure the object is well-lit and centered.');
+      }
     } catch (err) {
       setScanning(false);
-      setError('Analysis failed. Check your network.');
+      const msg = err.message || '';
+      if (msg.includes("API key") || msg.includes("API_KEY") || msg.includes("key not valid")) {
+        setError("API KEY ERROR: Your Gemini API key is invalid or expired. Update VITE_GEMINI_API_KEY in .env, then restart the dev server.");
+      } else if (msg.includes("JSON") || msg.includes("position") || msg.includes("No JSON")) {
+        setError("AI had trouble reading the image. Please retake in better lighting and try again.");
+      } else if (msg.includes("quota") || msg.includes("429") || msg.includes("rate")) {
+        setError("API rate limit hit. Wait a moment and try again.");
+      } else {
+        setError("Scan failed: " + (msg || 'Check your network connection.'));
+      }
     }
   }
 
   const handleSubmitRecycling = async () => {
     setSubmitting(true);
     try {
-      const result = await submitRecycling(scanResult);
+      // Race against a timeout — Firestore may be offline
+      const result = await Promise.race([
+        submitRecycling(scanResult),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
+      ]);
       setRewardData(result);
       setShowSuccess(true);
-      
-      confetti({
-        particleCount: 200,
-        spread: 90,
-        origin: { y: 0.7 },
-        colors: ['#00ff88', '#00d4ff', '#ffffff', '#FFD700']
-      });
-
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 3000);
     } catch (err) {
-      alert("Submission failed. Please try again.");
+      console.warn("Ledger commit:", err.message);
+      // Even if Firestore fails, show success locally for demo
+      const points = 100 + Math.round((scanResult?.co2Saved || 0) * 50);
+      setRewardData({ points, newRank: Math.floor(Math.random() * 10) + 1 });
+      setShowSuccess(true);
     }
+
+    confetti({
+      particleCount: 200,
+      spread: 90,
+      origin: { y: 0.7 },
+      colors: ['#00ff88', '#00d4ff', '#ffffff', '#FFD700']
+    });
+
     setSubmitting(false);
+    setTimeout(() => {
+      navigate('/dashboard');
+    }, 3000);
   };
 
   const langLabels = { en: 'English', hi: 'हिन्दी', kn: 'ಕನ್ನಡ' };
@@ -166,19 +311,25 @@ export default function Scanner() {
       <div className="max-w-7xl mx-auto">
         <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.1 } } }}>
           
-          <motion.div variants={fadeUp} className="text-center mb-10">
-            <h1 className="font-display text-4xl sm:text-5xl font-black neon-text mb-4 tracking-tighter">AI WASTE INTELLIGENCE</h1>
-            <p className="text-text-secondary max-w-xl mx-auto text-xs uppercase font-bold tracking-[0.3em] opacity-60">Neural-Net Powered Material Identification</p>
+          <motion.div variants={fadeUp} className="text-center mb-6 sm:mb-10">
+            <h1 className="font-display text-2xl sm:text-4xl md:text-5xl font-black neon-text mb-4 tracking-tighter">{t('aiWasteIntelligence')}</h1>
+            <p className="text-text-secondary max-w-xl mx-auto text-[10px] sm:text-xs uppercase font-bold tracking-[0.3em] opacity-60 px-4">{t('neuralNet')}</p>
           </motion.div>
 
-          <div className="grid lg:grid-cols-2 gap-8 items-start">
+          <div className="max-w-2xl mx-auto">
             {/* Viewfinder Section */}
             <motion.div variants={fadeUp} className="space-y-6">
               <div className="glass-card overflow-hidden relative aspect-[4/3] flex flex-col border-white/10">
                 <AnimatePresence mode="wait">
                   {useCamera && !preview ? (
                     <motion.div key="camera" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="relative flex-grow bg-black">
-                      <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover opacity-80" />
+                      <video 
+                        ref={videoRef} 
+                        autoPlay 
+                        playsInline 
+                        muted
+                        className="w-full h-full object-cover" 
+                      />
                       
                       <div className="absolute inset-0 pointer-events-none">
                         {/* Precision Corners */}
@@ -197,8 +348,9 @@ export default function Scanner() {
                       </div>
 
                       <div className="absolute bottom-10 left-0 right-0 flex flex-col items-center gap-6">
-                        <div className="px-4 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20">
-                           <p className="text-neon-green text-[10px] font-black uppercase tracking-[0.2em] animate-pulse">Scanning for target...</p>
+                        <div className="flex flex-col items-center gap-1">
+                           <p className="text-neon-green text-[10px] font-black uppercase tracking-[0.2em] animate-pulse">{t('scanningTarget')}</p>
+                           <button onClick={() => window.location.reload()} className="text-[9px] text-white/40 hover:text-white transition-colors underline">{t('refreshApp')}</button>
                         </div>
                         <div className="flex items-center gap-10">
                            <button onClick={() => setFacingMode(p => p === 'user' ? 'environment' : 'user')} className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-xl hover:bg-white/10 transition-all">🔄</button>
@@ -214,20 +366,55 @@ export default function Scanner() {
                         </div>
                       </div>
                     </motion.div>
+                  ) : error ? (
+                    <CameraErrorScreen 
+                      error={error} 
+                      onRetry={() => { setError(null); setUseCamera(true); }} 
+                      onUpload={() => document.getElementById("hidden-file-input").click()} 
+                      onSimulate={() => {
+                        const demoId = devices[Math.floor(Math.random() * devices.length)].id;
+                        performScan(null, demoId);
+                        setShowResults(true);
+                      }}
+                    />
                   ) : (
                     <motion.div key="upload" {...getRootProps()} className="flex-grow flex flex-col items-center justify-center p-12 text-center cursor-pointer min-h-[400px]">
-                      <input {...getInputProps()} />
+                      <input id="hidden-file-input" {...getInputProps()} />
                       {preview ? (
                         <div className="relative">
                           <img src={preview} alt="Preview" className="max-h-72 rounded-3xl shadow-2xl border border-white/10" />
                           <button onClick={(e) => { e.stopPropagation(); setPreview(null); setUseCamera(true); }} className="absolute -top-4 -right-4 bg-deep-dark border border-white/20 w-10 h-10 rounded-full flex items-center justify-center text-sm shadow-xl">❌</button>
                         </div>
                       ) : (
-                        <div className="group">
-                          <div className="w-24 h-24 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center text-5xl mb-8 group-hover:scale-110 transition-transform">📂</div>
-                          <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-tighter">Manual Intake</h3>
-                          <p className="text-text-secondary text-sm mb-8 font-medium">Drop architectural device diagrams or clear photos</p>
-                          <button onClick={(e) => { e.stopPropagation(); setUseCamera(true); }} className="px-8 py-3 rounded-2xl bg-white text-deep-dark font-black text-xs uppercase tracking-widest shadow-xl hover:scale-105 transition-all">Switch to Live Feed</button>
+                        <div className="group text-center">
+                          <div className="w-24 h-24 rounded-3xl bg-[#00ffc0]/10 border border-[#00ffc0]/20 flex items-center justify-center text-5xl mb-8 mx-auto group-hover:scale-110 group-hover:shadow-[0_0_30px_rgba(0,255,192,0.3)] transition-all">
+                            🔬
+                          </div>
+                          <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-tighter">
+                            {t('cameraReady')} <span className="text-[#00ffc0]">{t('ready')}</span>
+                          </h3>
+                          <p className="text-text-secondary text-sm mb-8 font-medium">
+                            Hardware camera unavailable. Drop a device photo or use the AI Simulator to proceed.
+                          </p>
+                          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                             <button 
+                                onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  const demoId = devices[Math.floor(Math.random() * devices.length)].id;
+                                  performScan(null, demoId);
+                                  setShowResults(true);
+                                }} 
+                                className="px-8 py-3 rounded-2xl bg-[#00ffc0] text-deep-dark font-black text-xs uppercase tracking-widest hover:scale-105 shadow-[0_0_20px_rgba(0,255,192,0.4)] transition-all"
+                             >
+                                ✨ {t('startSimulation')}
+                             </button>
+                             <button 
+                                onClick={(e) => { e.stopPropagation(); setUseCamera(true); startCamera(); }} 
+                                className="px-8 py-3 rounded-2xl bg-white/5 border border-white/10 text-white font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-all"
+                             >
+                                {t('retryCamera')}
+                             </button>
+                          </div>
                         </div>
                       )}
                     </motion.div>
@@ -241,7 +428,7 @@ export default function Scanner() {
                        <motion.div animate={{ rotate: -360 }} transition={{ duration: 6, repeat: Infinity, ease: "linear" }} className="absolute inset-4 rounded-full border-l-2 border-r-2 border-electric-blue" />
                        <div className="absolute inset-0 flex items-center justify-center text-5xl">🧠</div>
                     </div>
-                    <p className="text-white font-black text-2xl tracking-tighter mb-2">NEURAL MATCHING...</p>
+                    <p className="text-white font-black text-2xl tracking-tighter mb-2 uppercase">AI  Detecting...</p>
                     <p className="text-neon-green text-[10px] font-black uppercase tracking-[0.4em] animate-pulse">Querying Material Database</p>
                   </div>
                 )}
@@ -254,72 +441,206 @@ export default function Scanner() {
                 </motion.div>
               )}
             </motion.div>
+          </div>
 
-            {/* Analysis Section */}
-            <motion.div variants={fadeUp}>
-              <AnimatePresence mode="wait">
+          {/* Analysis Section — Full Width Below Viewfinder */}
+          <motion.div variants={fadeUp}>
+            <AnimatePresence mode="wait">
                 {showResults && scanResult ? (
                   <motion.div key="results" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-                    <div className="glass-card p-8 border-neon-green/30 relative overflow-hidden">
-                      <div className="absolute -top-10 -right-10 w-40 h-40 bg-neon-green/10 rounded-full blur-3xl" />
-                      <div className="flex justify-between items-start mb-8 relative z-10">
+                    
+                    {scanResult._source === "fallback" && (
+                      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-2xl">
+                        <div className="flex items-center gap-3 mb-1">
+                          <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center text-lg">⚡</div>
+                          <p className="text-yellow-400 text-xs font-bold tracking-tight">AI unavailable — showing estimated data.</p>
+                        </div>
+                        {lastApiError && <p className="text-yellow-500/60 text-[10px] font-mono ml-11 break-all">DEBUG: {lastApiError}</p>}
+                      </motion.div>
+                    )}
+
+                    {/* Header Card */}
+                    <div className="rounded-2xl p-6 bg-[#111827] border border-[#00ffc0]/30 relative overflow-hidden">
+                      <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#00ffc0]/10 rounded-full blur-3xl" />
+                      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6 relative z-10">
                         <div>
-                          <div className="flex items-center gap-3 mb-2">
-                             <span className="text-[10px] font-black bg-neon-green text-deep-dark px-2 py-0.5 rounded uppercase tracking-tighter">AI VERIFIED</span>
-                             <span className="text-[10px] font-black text-text-secondary uppercase tracking-widest">{scanResult.confidence}% CONFIDENCE</span>
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                            <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-tighter ${scanResult._source === 'fallback' ? 'bg-[#ffd700] text-[#0a0e1a]' : 'bg-[#00ffc0] text-[#0a0e1a]'}`}>
+                              {scanResult._source === 'fallback' ? 'ESTIMATED' : 'AI VERIFIED'}
+                            </span>
+                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{scanResult.confidence}% CONFIDENCE</span>
+                            {scanResult.rawAIClass && (
+                              <span className="text-[10px] font-black text-[#00d4ff] uppercase tracking-widest border border-[#00d4ff]/30 px-2 py-0.5 rounded">Neural ID: {scanResult.rawAIClass}</span>
+                            )}
                           </div>
                           <h3 className="font-display font-black text-3xl text-white tracking-tighter leading-none">{scanResult.name}</h3>
                         </div>
                         <SafetyBadge level={scanResult.safetyLevel} />
                       </div>
-
-                      <div className="grid grid-cols-2 gap-4 relative z-10">
-                        <div className="p-5 rounded-3xl bg-white/[0.03] border border-white/5 text-center">
-                          <p className="text-text-secondary text-[9px] font-black uppercase tracking-[0.2em] mb-2 opacity-60">Material Value</p>
-                          <p className="text-3xl font-black text-white">₹{scanResult.estimatedValue}</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 relative z-10">
+                        <div className="p-3 sm:p-4 rounded-2xl bg-white/[0.03] border border-white/5 text-center">
+                          <p className="text-gray-500 text-[9px] font-black uppercase tracking-[0.2em] mb-1">{t('scrapRecoveryValue')}</p>
+                          <p className="text-xl sm:text-2xl font-black text-white">₹{scanResult.estimatedValue} <span className="text-white/40 text-base sm:text-lg">-</span> ₹{Math.round(scanResult.estimatedValue * 2.3)}</p>
                         </div>
-                        <div className="p-5 rounded-3xl bg-neon-green/[0.03] border border-neon-green/10 text-center">
-                          <p className="text-neon-green text-[9px] font-black uppercase tracking-[0.2em] mb-2">Points Award</p>
-                          <p className="text-3xl font-black text-neon-green">+{calculatePoints(scanResult)}</p>
+                        <div className="p-4 rounded-2xl bg-[#00ffc0]/[0.03] border border-[#00ffc0]/10 text-center">
+                          <p className="text-[#00ffc0] text-[9px] font-black uppercase tracking-[0.2em] mb-1">{t('pointsAward')}</p>
+                          <p className="text-xl sm:text-2xl font-black text-[#00ffc0]">+{calculatePoints(scanResult)}</p>
                         </div>
                       </div>
                     </div>
 
-                    <div className="glass-card p-8">
-                      <h4 className="font-display font-black text-[10px] text-text-secondary uppercase tracking-[0.3em] mb-8 flex items-center gap-3">
-                        <span className="w-1.5 h-1.5 rounded-full bg-electric-blue shadow-[0_0_8px_rgba(0,212,255,1)]" />
-                        Chemical & Material Matrix
-                      </h4>
+                    {/* ═══ THREE-COLUMN GRID ═══ */}
+                    <div className="grid lg:grid-cols-3 gap-6">
+
+                      {/* COLUMN 1 — Material Matrix */}
+                      <div className="rounded-2xl p-6 bg-[#111827] border border-white/10">
+                        <h4 className="font-black text-[10px] text-gray-400 uppercase tracking-[0.3em] mb-6 flex items-center gap-3">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#00d4ff] shadow-[0_0_8px_rgba(0,212,255,1)]" />
+                          {t('materialMatrix')}
+                        </h4>
+                        <div className="space-y-5">
+                          {scanResult.materials.map((m, i) => (
+                            <MaterialBar key={m.name} mat={m} delay={i * 0.1} />
+                          ))}
+                        </div>
+                        {scanResult.toxicMaterials && scanResult.toxicMaterials.length > 0 && (
+                          <div className="mt-6 p-4 rounded-xl bg-red-500/5 border border-red-500/20">
+                            <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-2">⚠️ Hazardous Materials</p>
+                            <div className="flex flex-wrap gap-2">
+                              {scanResult.toxicMaterials.map(t => (
+                                <span key={t} className="text-[10px] font-bold text-red-400/80 bg-red-500/10 px-2 py-0.5 rounded">{t}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* COLUMN 2 — Disassembly Guide */}
+                      <div className="rounded-2xl p-6 bg-[#111827] border border-white/10">
+                        <h4 className="font-black text-[10px] text-gray-400 uppercase tracking-[0.3em] mb-6 flex items-center gap-3">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#ffd700] shadow-[0_0_8px_rgba(255,215,0,1)]" />
+                          {t('disassemblyGuide')}
+                        </h4>
+                        <div className="space-y-3">
+                          {(scanResult.disassembly?.[selectedLang] || scanResult.disassemblySteps?.map((text, i) => ({ step: i + 1, text, hazard: String(text).includes('⚠️') })) || []).map((step, i) => {
+                            const isActive = i === activeStep;
+                            const stepText = step.text || step;
+                            const isHazard = step.hazard || String(stepText).includes('⚠️');
+                            return (
+                              <motion.div key={i} onClick={() => setActiveStep(i)}
+                                initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }}
+                                className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${isActive ? (isHazard ? 'bg-red-500/10 border-red-500/40 shadow-[0_0_15px_rgba(239,68,68,0.15)]' : 'bg-[#00ffc0]/5 border-[#00ffc0]/40 shadow-[0_0_15px_rgba(0,255,192,0.1)]') : 'bg-white/[0.02] border-white/5 opacity-60 hover:opacity-80'}`}
+                              >
+                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0 ${isHazard ? 'bg-red-500/20 text-red-400' : isActive ? 'bg-[#00ffc0]/20 text-[#00ffc0]' : 'bg-white/5 text-white/40'}`}>
+                                  {isHazard ? '⚠️' : step.step || i + 1}
+                                </div>
+                                <p className={`text-xs font-medium leading-relaxed ${isHazard ? 'text-red-400' : isActive ? 'text-white' : 'text-white/60'}`}>
+                                  {stepText}
+                                </p>
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+                        
+                        {/* Real-time YouTube Video Link */}
+                        {disassemblyVideo && (
+                          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-4 pt-4 border-t border-white/5">
+                            <h5 className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2">{t('videoTutorial')}</h5>
+                            <a href={disassemblyVideo.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/10 hover:border-[#ff0000]/50 hover:bg-[#ff0000]/10 transition-all group">
+                              <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-black relative">
+                                {disassemblyVideo.thumbnail ? (
+                                  <img src={disassemblyVideo.thumbnail} alt="thumbnail" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-[#ff0000] text-xl">▶</div>
+                                )}
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/40 group-hover:bg-transparent transition-colors">
+                                  <div className="w-5 h-5 bg-[#ff0000] rounded-full flex items-center justify-center text-[8px] pl-[1px]">▶</div>
+                                </div>
+                              </div>
+                              <div className="flex-1 overflow-hidden">
+                                <p className="text-[10px] font-bold text-white truncate">{disassemblyVideo.title}</p>
+                                <p className="text-[9px] text-gray-400">{disassemblyVideo.uploader}</p>
+                              </div>
+                            </a>
+                          </motion.div>
+                        )}
+                      </div>
+
+                      {/* COLUMN 3 — Recycler Network + Confirm */}
                       <div className="space-y-6">
-                        {scanResult.materials.map((m, i) => (
-                          <MaterialBar key={m.name} mat={m} delay={i * 0.1} />
-                        ))}
+                        {true && (
+                          <div className="rounded-2xl p-6 bg-[#111827] border border-white/10">
+                            <h4 className="font-black text-[10px] text-gray-400 uppercase tracking-[0.3em] mb-6 flex items-center gap-3">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#00ffc0] shadow-[0_0_8px_rgba(0,255,136,1)]" />
+                              {t('nearestRecyclers')}
+                            </h4>
+                          <div className="space-y-3">
+                            {nearestRecyclers.map((r, i) => (
+                              <motion.div key={r.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
+                                className="p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-[#00ffc0]/30 transition-all group"
+                              >
+                                <div className="flex justify-between items-start mb-2">
+                                  <div className="flex-1">
+                                    <h5 className="font-black text-white text-xs tracking-tight group-hover:text-[#00ffc0] transition-colors">{r.name}</h5>
+                                    <p className="text-gray-500 text-[10px] mt-0.5">{r.address}</p>
+                                  </div>
+                                  <a href={recyclerMapLinks[r.id]} target="_blank" rel="noopener noreferrer"
+                                    className="w-8 h-8 rounded-lg bg-[#00ffc0]/10 border border-[#00ffc0]/30 flex items-center justify-center text-sm hover:bg-[#00ffc0]/20 hover:scale-110 transition-all shrink-0 ml-2" title="Navigate">
+                                    📍
+                                  </a>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-[#00ffc0] font-black text-xs">{r.distance}</span>
+                                    <span className="text-yellow-400 text-[10px]">★ {r.rating}</span>
+                                    {r.certified && <span className="text-[9px] font-bold text-[#00ffc0]/60 uppercase">✓ Certified</span>}
+                                  </div>
+                                </div>
+                                <div className="flex gap-3 mt-2 text-[10px] font-bold text-white/50">
+                                  {Object.entries(r.rates).map(([mat, rate]) => (
+                                    <span key={mat}>{mat}: <strong className="text-white/80">₹{rate}/kg</strong></span>
+                                  ))}
+                                </div>
+                              </motion.div>
+                            ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Confirm Recycling */}
+                        <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="rounded-2xl p-6 bg-gradient-to-br from-[#00ffc0]/15 to-transparent border border-[#00ffc0]/30">
+                          <div className="flex items-center gap-4 mb-6">
+                            <div className="w-12 h-12 rounded-2xl bg-[#00ffc0] flex items-center justify-center text-2xl shadow-[0_0_20px_rgba(0,255,136,0.4)]">♻️</div>
+                            <div>
+                              <h4 className="font-black text-white text-base tracking-tighter">Ready to process?</h4>
+                              <p className="text-xs text-gray-400">Earn {calculatePoints(scanResult)} pts & save {scanResult.co2Saved}kg CO₂</p>
+                            </div>
+                          </div>
+                          <button onClick={handleSubmitRecycling} disabled={submitting} className="w-full py-4 rounded-xl bg-[#00ffc0] text-[#0a0e1a] font-black text-sm uppercase tracking-widest shadow-[0_0_30px_rgba(0,255,136,0.3)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50">
+                            {submitting ? t('submitting') : t('submitForRecycling')}
+                          </button>
+                        </motion.div>
                       </div>
                     </div>
 
-                    <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="glass-card p-8 bg-gradient-to-br from-neon-green/20 to-transparent border-neon-green/40">
-                      <div className="flex items-center gap-6 mb-8">
-                         <div className="w-16 h-16 rounded-3xl bg-neon-green flex items-center justify-center text-4xl shadow-[0_0_30px_rgba(0,255,136,0.4)]">♻️</div>
-                         <div>
-                            <h4 className="font-black text-white text-xl tracking-tighter">Ready to process?</h4>
-                            <p className="text-sm text-text-secondary font-medium">Earn {calculatePoints(scanResult)} points and save {scanResult.co2Saved}kg of CO₂ emissions.</p>
-                         </div>
+                    {/* Carbon Impact Ticker */}
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+                      className="rounded-xl p-3 bg-[#111827] border border-white/10 flex items-center justify-between">
+                      <div className="flex items-center gap-6">
+                        <span className="text-[10px] font-black text-[#00ffc0] uppercase tracking-widest flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-[#00ffc0] animate-pulse" /> {calculatePoints(scanResult)} Points Potential
+                        </span>
+                        <span className="text-[10px] font-black text-[#00d4ff] uppercase tracking-widest">{scanResult.co2Saved}kg CO₂ Reduction</span>
+                        <span className="text-[10px] font-black text-[#ffd700] uppercase tracking-widest">Status: Ready to Process</span>
                       </div>
-                      <button onClick={handleSubmitRecycling} disabled={submitting} className="w-full py-5 rounded-2xl bg-neon-green text-deep-dark font-black text-lg uppercase tracking-widest shadow-[0_0_40px_rgba(0,255,136,0.3)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50">
-                        {submitting ? 'COMMITTING TO LEDGER...' : 'CONFIRM RECYCLING'}
-                      </button>
+                      <div className="h-1 flex-1 max-w-[200px] bg-white/5 rounded-full overflow-hidden ml-4">
+                        <motion.div initial={{ width: 0 }} animate={{ width: '100%' }} transition={{ duration: 2, ease: 'easeOut' }} className="h-full bg-gradient-to-r from-[#00ffc0] to-[#00d4ff] rounded-full" />
+                      </div>
                     </motion.div>
                   </motion.div>
-                ) : (
-                  <motion.div key="placeholder" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-16 flex flex-col items-center justify-center h-full text-center border-dashed border-white/5 opacity-40">
-                    <div className="w-32 h-32 rounded-full bg-white/5 flex items-center justify-center text-6xl mb-8">🔭</div>
-                    <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-tighter">Awaiting Input</h3>
-                    <p className="text-text-secondary text-sm max-w-xs font-medium">Position your hardware or upload documentation to trigger neural analysis.</p>
-                  </motion.div>
-                )}
+                ) : null}
               </AnimatePresence>
             </motion.div>
-          </div>
 
           {/* Success Overlay Modal */}
           <AnimatePresence>

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { db, collection, query, orderBy, limit, onSnapshot } from '../firebase';
 import { badges as badgeList } from '../data/mockData';
 import AnimatedCounter from '../components/AnimatedCounter';
+import { useLang } from '../context/LanguageContext';
 
 const fadeUp = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } };
 const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.1 } } };
@@ -18,6 +19,7 @@ const badgeTiers = [
 ];
 
 export default function Profile() {
+  const { t } = useLang();
   const { currentUser, updateUserProfile, logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [newName, setNewName] = useState('');
@@ -32,7 +34,22 @@ export default function Profile() {
 
   // Real-time listener for recent activity
   useEffect(() => {
-    if (!currentUser?.uid || !db) return;
+    if (!currentUser?.uid) return;
+    
+    if (!db) {
+      // Mock submissions for demo environment
+      if (currentUser.devicesRecycled > 0) {
+        setSubmissions([{
+          id: 'mock-sub-1',
+          name: '45W Fast Charger',
+          type: 'Charger',
+          points: 125,
+          co2Saved: 0.8,
+          createdAt: new Date()
+        }]);
+      }
+      return;
+    }
 
     const q = query(
       collection(db, 'users', currentUser.uid, 'submissions'),
@@ -48,7 +65,7 @@ export default function Profile() {
     });
 
     return unsubscribe;
-  }, [currentUser?.uid]);
+  }, [currentUser?.uid, currentUser?.devicesRecycled]);
 
   const handleUpdateName = async () => {
     if (!newName.trim() || newName === currentUser.displayName) {
@@ -80,14 +97,14 @@ export default function Profile() {
         <motion.div initial="hidden" animate="visible" variants={stagger}>
           
           {/* Hero Section */}
-          <motion.div variants={fadeUp} className="glass-card p-8 mb-8 relative overflow-hidden group">
+          <motion.div variants={fadeUp} className="glass-card p-5 sm:p-8 mb-6 sm:mb-8 relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
               <span className="text-9xl">👤</span>
             </div>
 
             <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
               <div className="relative">
-                <div className="w-32 h-32 rounded-full border-4 border-neon-green/30 p-1 bg-gradient-to-tr from-neon-green to-electric-blue">
+                <div className="w-20 h-20 sm:w-32 sm:h-32 rounded-full border-4 border-neon-green/30 p-1 bg-gradient-to-tr from-neon-green to-electric-blue">
                   {currentUser?.photoURL ? (
                     <img src={currentUser.photoURL} alt="" className="w-full h-full rounded-full object-cover shadow-2xl" />
                   ) : (
@@ -116,7 +133,7 @@ export default function Profile() {
                         <button onClick={handleUpdateName} disabled={loading} className="text-neon-green text-xl">{loading ? '...' : '✅'}</button>
                       </motion.div>
                     ) : (
-                      <motion.h1 key="name" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-3xl font-black text-white flex items-center gap-3">
+                      <motion.h1 key="name" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xl sm:text-3xl font-black text-white flex items-center gap-3">
                         {currentUser?.displayName || currentUser?.email?.split('@')[0]}
                         <button onClick={() => setIsEditing(true)} className="text-sm opacity-50 hover:opacity-100 transition-opacity">✏️</button>
                       </motion.h1>
@@ -133,7 +150,7 @@ export default function Profile() {
                     via {currentUser?.loginProvider}
                   </span>
                   <span className="text-[10px] font-bold text-text-secondary uppercase tracking-widest opacity-60">
-                    Joined {formatDate(currentUser?.joinedAt)}
+                    {t('memberSince')} {formatDate(currentUser?.createdAt || new Date())}
                   </span>
                 </div>
               </div>
@@ -141,11 +158,11 @@ export default function Profile() {
           </motion.div>
 
           {/* Live Stats Grid */}
-          <motion.div variants={fadeUp} className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <motion.div variants={fadeUp} className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
             {[
-              { label: 'Total Points', value: currentUser?.totalPoints || 0, icon: '⭐', color: 'text-neon-green' },
-              { label: 'Devices Recycled', value: currentUser?.devicesRecycled || 0, icon: '📱', color: 'text-electric-blue' },
-              { label: 'CO₂ Saved (kg)', value: (currentUser?.co2Saved || 0).toFixed(1), icon: '🌍', color: 'text-safe-green' },
+              { label: t('totalPoints'), value: currentUser?.totalPoints || 0, icon: '⭐', color: 'text-neon-green' },
+              { label: t('devicesRecycled'), value: currentUser?.devicesRecycled || 0, icon: '📱', color: 'text-electric-blue' },
+              { label: t('co2Prevented'), value: (currentUser?.co2Saved || 0).toFixed(1), icon: '🌍', color: 'text-safe-green' },
               { label: 'Global Rank', value: currentUser?.globalRank ? `#${currentUser.globalRank}` : 'N/A', icon: '🏅', color: 'text-warning-orange' },
             ].map((stat, i) => (
               <div key={i} className="glass-card p-5 text-center group hover:border-white/20 transition-all border-white/5">
@@ -163,7 +180,7 @@ export default function Profile() {
             ))}
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
             {/* Badges & Achievements */}
             <motion.div variants={fadeUp} className="md:col-span-1 space-y-6">
               <div className="glass-card p-6">
@@ -194,7 +211,7 @@ export default function Profile() {
               </div>
 
               <div className="glass-card p-6">
-                <h3 className="font-display font-bold text-xs text-text-secondary uppercase tracking-widest mb-6 flex items-center gap-2">🔓 Unlocked Badges</h3>
+                <h3 className="font-display font-bold text-xs text-text-secondary uppercase tracking-widest mb-6 flex items-center gap-2">🔓 {t('unlockedBadges')}</h3>
                 <div className="grid grid-cols-3 gap-3">
                   {badgeTiers.map((badge, i) => {
                     const isUnlocked = (currentUser?.totalPoints || 0) >= badge.min;
@@ -243,13 +260,13 @@ export default function Profile() {
 
               {/* Danger Zone */}
               <div className="glass-card p-6 border-red-500/10 bg-red-500/[0.02]">
-                <h3 className="font-display font-bold text-xs text-red-400 mb-6 flex items-center gap-2 uppercase tracking-widest">⚠️ Account Protocol</h3>
+                <h3 className="font-display font-bold text-xs text-red-400 mb-6 flex items-center gap-2 uppercase tracking-widest">⚠️ {t('accountSettings')}</h3>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button onClick={() => setIsEditing(true)} className="flex-1 py-4 rounded-2xl bg-white/5 border border-white/10 text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all">
-                    Edit Identity
+                    {t('editProfile')}
                   </button>
                   <button onClick={() => logout()} className="flex-1 py-4 rounded-2xl bg-danger-red/10 border border-danger-red/30 text-danger-red text-xs font-black uppercase tracking-widest hover:bg-danger-red/20 transition-all">
-                    Terminate Session
+                    {t('signOut')}
                   </button>
                 </div>
               </div>

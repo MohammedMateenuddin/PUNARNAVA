@@ -150,7 +150,7 @@ export default function Login() {
           >
             ♻️
           </motion.div>
-          <h1 className="font-display text-4xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-br from-[#00e5a0] to-[#1db954] drop-shadow-[0_0_15px_rgba(0,229,160,0.5)] mb-2 uppercase">
+          <h1 className="font-display text-3xl sm:text-4xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-br from-[#00e5a0] to-[#1db954] drop-shadow-[0_0_15px_rgba(0,229,160,0.5)] mb-2 uppercase">
             PUNARNAVA
           </h1>
           <p className="text-[#00e5a0]/70 text-xs tracking-[0.2em] uppercase font-semibold">Recycle. Renew. Restore.</p>

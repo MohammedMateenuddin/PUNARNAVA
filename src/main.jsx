@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { AppProvider } from './context/AppContext'
 import { AuthProvider } from './context/AuthContext'
+import { LanguageProvider } from './context/LanguageContext'
 import './index.css'
 
 class ErrorBoundary extends React.Component {
@@ -36,9 +37,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <ErrorBoundary>
       <BrowserRouter>
         <AuthProvider>
-          <AppProvider>
-            <App />
-          </AppProvider>
+          <LanguageProvider>
+            <AppProvider>
+              <App />
+            </AppProvider>
+          </LanguageProvider>
         </AuthProvider>
       </BrowserRouter>
     </ErrorBoundary>
