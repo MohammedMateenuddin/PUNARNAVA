@@ -243,14 +243,17 @@ async function mapToUI(data, source = "gemini") {
 
 // ═══════════════════════════════════════════════════════════════
 // CORE SCAN — Direct Fetch with MODEL FALLBACK CHAIN
-// Each model has separate rate limits on free tier!
 // ═══════════════════════════════════════════════════════════════
 const MODELS = [
-  "gemini-2.5-flash",
-  "gemini-2.5-flash-lite"
+  "gemini-1.5-flash",
+  "gemini-1.5-flash-8b"
 ];
 
 async function scanDeviceWithModel(imageFile, modelName, apiKey) {
+  if (!apiKey || apiKey.includes("YOUR_API_KEY")) {
+    throw new Error("MISSING_KEY");
+  }
+
   const base64 = await toBase64(imageFile);
 
   const body = {

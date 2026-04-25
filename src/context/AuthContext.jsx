@@ -190,19 +190,43 @@ export function AuthProvider({ children }) {
   // ══════════════════════════════════════════════
   // LOGIN METHODS — role is permanently set here
   // ══════════════════════════════════════════════
+  
+  const isMobile = () => /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
   const loginWithGoogle = async (selectedRole) => {
     if (!auth) return mockLogin(selectedRole);
     localStorage.setItem('punarnava_role', selectedRole);
-    const result = await signInWithPopup(auth, googleProvider);
-    saveUserRole(result.user, selectedRole, 'google').catch(err => console.error("BG Sync Error:", err));
+    
+    try {
+      if (isMobile()) {
+        const { signInWithRedirect } = await import('firebase/auth');
+        await signInWithRedirect(auth, googleProvider);
+      } else {
+        const result = await signInWithPopup(auth, googleProvider);
+        saveUserRole(result.user, selectedRole, 'google').catch(err => console.error("BG Sync Error:", err));
+      }
+    } catch (err) {
+      console.error("Google Auth Error:", err);
+      throw err;
+    }
   };
 
   const loginWithGithub = async (selectedRole) => {
     if (!auth) return mockLogin(selectedRole);
     localStorage.setItem('punarnava_role', selectedRole);
-    const result = await signInWithPopup(auth, githubProvider);
-    saveUserRole(result.user, selectedRole, 'github').catch(err => console.error("BG Sync Error:", err));
+    
+    try {
+      if (isMobile()) {
+        const { signInWithRedirect } = await import('firebase/auth');
+        await signInWithRedirect(auth, githubProvider);
+      } else {
+        const result = await signInWithPopup(auth, githubProvider);
+        saveUserRole(result.user, selectedRole, 'github').catch(err => console.error("BG Sync Error:", err));
+      }
+    } catch (err) {
+      console.error("Github Auth Error:", err);
+      throw err;
+    }
   };
 
   const loginWithEmail = async (email, password, selectedRole, isSignUp = false, name = '') => {
@@ -258,6 +282,21 @@ export function AuthProvider({ children }) {
       setLoading(false);
       return;
     }
+
+    // Handle Redirect Results (for mobile)
+    const handleRedirect = async () => {
+      try {
+        const { getRedirectResult } = await import('firebase/auth');
+        const result = await getRedirectResult(auth);
+        if (result && result.user) {
+          const selectedRole = localStorage.getItem('punarnava_role') || 'user';
+          await saveUserRole(result.user, selectedRole, 'google');
+        }
+      } catch (err) {
+        console.error("Redirect Result Error:", err);
+      }
+    };
+    handleRedirect();
 
     let unsubscribeProfile = () => {};
 

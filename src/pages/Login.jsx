@@ -40,7 +40,7 @@ export default function Login() {
     if (code.includes('too-many-requests')) return "Too many attempts. Try again later";
     if (code.includes('network-request-failed')) return "Network error. Check your connection";
     if (code.includes('email-already-in-use')) return "An account already exists with this email";
-    return "Authentication failed. Please try again.";
+    return `Authentication failed: ${code.split('/').pop().replace(/-/g, ' ')}`;
   };
 
   const validateInputs = () => {
