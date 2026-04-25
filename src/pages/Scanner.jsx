@@ -144,7 +144,12 @@ export default function Scanner() {
 
   const startCamera = async () => {
     setError(null);
-    if (streamRef.current) stopCamera();
+    setUseCamera(true);
+    
+    // Cleanup old stream if any
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+    }
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setError("BROWSER_UNSUPPORTED");
@@ -152,47 +157,56 @@ export default function Scanner() {
       return;
     }
 
-    try {
-      const permStatus = await navigator.permissions.query({ name: "camera" });
-      if (permStatus.state === "denied") {
-        setError("PERMISSION_DENIED");
-        setUseCamera(false);
-        return;
-      }
-    } catch (e) {
-      // Permissions API not supported on all browsers
-    }
-    
-    const constraintsList = [
+    // Attempt to start camera with a more resilient fallback chain
+    const attempts = [
+      { video: { facingMode: { ideal: facingMode }, width: { ideal: 1920 }, height: { ideal: 1080 } } },
       { video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 }, height: { ideal: 720 } } },
-      { video: { facingMode: "user" } },
+      { video: { facingMode: facingMode } },
       { video: true }
     ];
 
-    for (const constraints of constraintsList) {
+    let lastErr = null;
+    for (const constraints of attempts) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           streamRef.current = stream;
-          setUseCamera(true);
-          return;
+          
+          // Ensure video plays
+          try {
+            await videoRef.current.play();
+          } catch (e) {
+            console.warn("Autoplay blocked, waiting for user interaction");
+          }
+          
+          return; // Success!
         }
       } catch (err) {
-        console.warn("Camera attempt failed:", err.name, err.message);
-        continue;
+        lastErr = err;
+        console.warn(`Camera attempt with ${JSON.stringify(constraints)} failed:`, err.name);
       }
     }
 
-    // If all constraints failed
-    setError("CAMERA_UNAVAILABLE");
+    // Handle final failure
+    if (lastErr?.name === 'NotAllowedError' || lastErr?.name === 'PermissionDeniedError') {
+      setError("PERMISSION_DENIED");
+    } else {
+      setError("CAMERA_UNAVAILABLE");
+    }
     setUseCamera(false);
   };
 
   const stopCamera = () => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach(track => {
+        track.stop();
+        console.log("Stopped track:", track.label);
+      });
       streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
     }
   };
 
