@@ -376,7 +376,7 @@ export default function Scanner() {
                                  </div>
                               </div>
                            </button>
-                           <button onClick={() => setUseCamera(false)} className="w-12 h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-xl hover:bg-white/20 transition-all shadow-lg backdrop-blur-md">📁</button>
+                           <button onClick={() => document.getElementById('global-file-input').click()} className="w-12 h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-xl hover:bg-white/20 transition-all shadow-lg backdrop-blur-md">📁</button>
                         </div>
                       </div>
                     </motion.div>
@@ -679,6 +679,18 @@ export default function Scanner() {
             )}
           </AnimatePresence>
 
+          {/* Hidden Global File Input for the Folder Button */}
+          <input 
+            type="file" 
+            id="global-file-input" 
+            className="hidden" 
+            accept="image/*" 
+            onChange={(e) => {
+              if (e.target.files && e.target.files.length > 0) {
+                onDrop(Array.from(e.target.files));
+              }
+            }} 
+          />
           <canvas ref={canvasRef} className="hidden" />
         </motion.div>
       </div>
