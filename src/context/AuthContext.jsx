@@ -198,13 +198,8 @@ export function AuthProvider({ children }) {
     localStorage.setItem('punarnava_role', selectedRole);
     
     try {
-      if (isMobile()) {
-        const { signInWithRedirect } = await import('firebase/auth');
-        await signInWithRedirect(auth, googleProvider);
-      } else {
-        const result = await signInWithPopup(auth, googleProvider);
-        saveUserRole(result.user, selectedRole, 'google').catch(err => console.error("BG Sync Error:", err));
-      }
+      const result = await signInWithPopup(auth, googleProvider);
+      saveUserRole(result.user, selectedRole, 'google').catch(err => console.error("BG Sync Error:", err));
     } catch (err) {
       console.error("Google Auth Error:", err);
       throw err;
@@ -216,13 +211,8 @@ export function AuthProvider({ children }) {
     localStorage.setItem('punarnava_role', selectedRole);
     
     try {
-      if (isMobile()) {
-        const { signInWithRedirect } = await import('firebase/auth');
-        await signInWithRedirect(auth, githubProvider);
-      } else {
-        const result = await signInWithPopup(auth, githubProvider);
-        saveUserRole(result.user, selectedRole, 'github').catch(err => console.error("BG Sync Error:", err));
-      }
+      const result = await signInWithPopup(auth, githubProvider);
+      saveUserRole(result.user, selectedRole, 'github').catch(err => console.error("BG Sync Error:", err));
     } catch (err) {
       console.error("Github Auth Error:", err);
       throw err;

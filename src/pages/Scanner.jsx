@@ -333,50 +333,50 @@ export default function Scanner() {
           <div className="max-w-2xl mx-auto">
             {/* Viewfinder Section */}
             <motion.div variants={fadeUp} className="space-y-6">
-              <div className="glass-card overflow-hidden relative aspect-[4/3] flex flex-col border-white/10">
+              <div className="glass-card overflow-hidden relative min-h-[450px] md:aspect-[4/3] flex flex-col border-white/10 rounded-3xl">
                 <AnimatePresence mode="wait">
                   {useCamera && !preview ? (
-                    <motion.div key="camera" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="relative flex-grow bg-black">
+                    <motion.div key="camera" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="relative flex-grow bg-black rounded-3xl overflow-hidden">
                       <video 
                         ref={videoRef} 
                         autoPlay 
                         playsInline 
                         muted
-                        className="w-full h-full object-cover" 
+                        className="absolute inset-0 w-full h-full object-cover" 
                       />
                       
-                      <div className="absolute inset-0 pointer-events-none">
+                      <div className="absolute inset-0 pointer-events-none z-10">
                         {/* Precision Corners */}
-                        <div className="absolute top-8 left-8 w-10 h-10 border-t-2 border-l-2 border-neon-green/60 rounded-tl-lg" />
-                        <div className="absolute top-8 right-8 w-10 h-10 border-t-2 border-r-2 border-neon-green/60 rounded-tr-lg" />
-                        <div className="absolute bottom-8 left-8 w-10 h-10 border-b-2 border-l-2 border-neon-green/60 rounded-bl-lg" />
-                        <div className="absolute bottom-8 right-8 w-10 h-10 border-b-2 border-r-2 border-neon-green/60 rounded-br-lg" />
+                        <div className="absolute top-8 left-8 w-8 h-8 border-t-2 border-l-2 border-neon-green/60 rounded-tl-lg" />
+                        <div className="absolute top-8 right-8 w-8 h-8 border-t-2 border-r-2 border-neon-green/60 rounded-tr-lg" />
+                        <div className="absolute bottom-24 left-8 w-8 h-8 border-b-2 border-l-2 border-neon-green/60 rounded-bl-lg" />
+                        <div className="absolute bottom-24 right-8 w-8 h-8 border-b-2 border-r-2 border-neon-green/60 rounded-br-lg" />
                         
                         {/* Scanning HUD */}
                         <motion.div 
-                          animate={{ top: ['15%', '85%', '15%'] }} 
+                          animate={{ top: ['15%', '70%', '15%'] }} 
                           transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
                           className="absolute left-8 right-8 h-[1px] bg-neon-green/40 shadow-[0_0_20px_rgba(0,255,136,0.8)]"
                         />
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)]" />
                       </div>
 
-                      <div className="absolute bottom-10 left-0 right-0 flex flex-col items-center gap-6">
-                        <div className="flex flex-col items-center gap-1">
+                      <div className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-4 z-20 pb-4">
+                        <div className="flex flex-col items-center gap-1 bg-black/40 px-4 py-2 rounded-full backdrop-blur-md">
                            <p className="text-neon-green text-[10px] font-black uppercase tracking-[0.2em] animate-pulse">{t('scanningTarget')}</p>
-                           <button onClick={() => window.location.reload()} className="text-[9px] text-white/40 hover:text-white transition-colors underline">{t('refreshApp')}</button>
+                           <button onClick={() => window.location.reload()} className="text-[9px] text-white/60 hover:text-white transition-colors underline">{t('refreshApp')}</button>
                         </div>
-                        <div className="flex items-center gap-10">
-                           <button onClick={() => setFacingMode(p => p === 'user' ? 'environment' : 'user')} className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-xl hover:bg-white/10 transition-all">🔄</button>
+                        <div className="flex items-center gap-6 sm:gap-10 bg-black/20 p-2 rounded-full backdrop-blur-sm">
+                           <button onClick={() => setFacingMode(p => p === 'user' ? 'environment' : 'user')} className="w-12 h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-xl hover:bg-white/20 transition-all shadow-lg backdrop-blur-md">🔄</button>
                            <button onClick={captureImage} className="group relative">
                               <div className="absolute inset-0 bg-neon-green rounded-full blur-xl opacity-20 group-hover:opacity-40 transition-opacity" />
-                              <div className="w-20 h-20 rounded-full border-4 border-white/20 p-1 relative z-10">
-                                 <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-3xl shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+                              <div className="w-20 h-20 rounded-full border-4 border-white/30 p-1 relative z-10 bg-black/20 backdrop-blur-md">
+                                 <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-3xl shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:scale-95 transition-transform">
                                    📷
                                  </div>
                               </div>
                            </button>
-                           <button onClick={() => setUseCamera(false)} className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-xl hover:bg-white/10 transition-all">📁</button>
+                           <button onClick={() => setUseCamera(false)} className="w-12 h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-xl hover:bg-white/20 transition-all shadow-lg backdrop-blur-md">📁</button>
                         </div>
                       </div>
                     </motion.div>
