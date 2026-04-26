@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PUNARNAVA — Developer Survival Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',sans-serif;color:#1e293b;line-height:1.75;background:#fff;font-size:14.5px}
+  .cover{min-height:100vh;background:#0f172a;display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;page-break-after:always}
+  .cover h1{font-size:2.8rem;font-weight:900}.cover h1 span{color:#f43f5e}
+  .cover .sub{color:#64748b;font-size:1rem;margin:0.8rem 0}
+  .page{max-width:820px;margin:0 auto;padding:45px 40px;page-break-after:always}
+  h2{font-size:1.4rem;font-weight:900;margin:2rem 0 0.7rem;border-bottom:3px solid #f43f5e;padding-bottom:0.3rem;color:#0f172a}
+  h3{font-size:1.1rem;font-weight:700;color:#334155;margin:1.3rem 0 0.5rem}
+  p{margin-bottom:0.8rem}
+  ul,ol{margin:0.4rem 0 1rem 1.3rem}li{margin-bottom:0.3rem}
+  code{background:#f1f5f9;padding:2px 5px;border-radius:3px;font-size:0.85rem;color:#e11d48;font-family:'JetBrains Mono',monospace}
+  pre{background:#0f172a;color:#e2e8f0;padding:0.9rem;border-radius:8px;font-size:0.8rem;margin:0.7rem 0;line-height:1.5;font-family:'JetBrains Mono',monospace;overflow-x:auto;white-space:pre-wrap}
+  .fix{background:#fef2f2;border-left:4px solid #ef4444;padding:0.8rem 1rem;margin:0.7rem 0;border-radius:0 8px 8px 0}
+  .fix strong{color:#dc2626}
+  .ok{background:#f0fdf4;border-left:4px solid #22c55e;padding:0.8rem 1rem;margin:0.7rem 0;border-radius:0 8px 8px 0}
+  .warn{background:#fffbeb;border-left:4px solid #f59e0b;padding:0.8rem 1rem;margin:0.7rem 0;border-radius:0 8px 8px 0}
+  .key{background:#eff6ff;border-left:4px solid #3b82f6;padding:0.8rem 1rem;margin:0.7rem 0;border-radius:0 8px 8px 0}
+  table{width:100%;border-collapse:collapse;margin:0.8rem 0;font-size:0.88rem}
+  th{background:#0f172a;color:#fff;padding:0.5rem 0.7rem;text-align:left;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em}
+  td{padding:0.45rem 0.7rem;border-bottom:1px solid #e2e8f0;vertical-align:top}
+  tr:nth-child(even){background:#f8fafc}
+  .footer{text-align:center;padding:2rem;color:#94a3b8;font-size:0.8rem}
+  @media print{.cover{min-height:100vh}.page{padding:30px 20px}body{font-size:10pt}}
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div>
+    <div style="font-size:3.5rem;margin-bottom:0.8rem">🔧</div>
+    <h1>PUNAR<span>NAVA</span></h1>
+    <p class="sub">Developer Survival Guide</p>
+    <p style="color:#475569;font-size:0.8rem;margin-top:1.5rem;max-width:400px;margin-left:auto;margin-right:auto">Only the stuff you MUST know.<br>What breaks. Why. How to fix it. Where to look.</p>
+  </div>
+</div>
+
+<!-- PAGE 1: CRITICAL CONFIG -->
+<div class="page">
+<h2>🔑 1. Your Secret Keys (If These Break, Nothing Works)</h2>
+
+<p>Your app needs <strong>passwords</strong> to talk to Google's services. They live in one file:</p>
+
+<h3>File: <code>.env</code> (in project root)</h3>
+<pre>
+VITE_GEMINI_API_KEY=AIzaSyDFr...     ← AI Scanner password
+VITE_FIREBASE_API_KEY=AIzaSyBl...    ← Login + Database password
+VITE_FIREBASE_AUTH_DOMAIN=punarnava-1cf89.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=punarnava-1cf89
+VITE_FIREBASE_STORAGE_BUCKET=punarnava-1cf89.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=51229171731
+VITE_FIREBASE_APP_ID=1:51229171731:web:b32386bce5b1ec0bcc1fe6
+</pre>
+
+<div class="fix">
+<strong>🚨 If .env file is missing or empty:</strong> NOTHING works — no login, no scanning, no data. Create it in the project root folder (same level as package.json). Copy the values above.
+</div>
+
+<div class="warn">
+<strong>⚠️ NEVER push .env to GitHub.</strong> It's in .gitignore for a reason. If pushed, Google auto-revokes your keys and everything breaks. If this happens: go to <a href="https://console.cloud.google.com">console.cloud.google.com</a>, generate new keys, update .env.
+</div>
+
+<h3>Where to get NEW keys if old ones die:</h3>
+<table>
+<tr><th>Key</th><th>Where to get it</th><th>Free limit</th></tr>
+<tr><td>Gemini API Key</td><td><a href="https://aistudio.google.com/app/apikey">aistudio.google.com/app/apikey</a></td><td>15 requests/min, 1500/day</td></tr>
+<tr><td>Firebase Keys</td><td><a href="https://console.firebase.google.com">console.firebase.google.com</a> → Project Settings → General</td><td>10K logins/month</td></tr>
+</table>
+
+<h2>🗂️ 2. The 7 Files That Matter Most</h2>
+
+<p>Your project has ~30 files. But if something breaks, it's almost always in one of these 7:</p>
+
+<table>
+<tr><th>#</th><th>File</th><th>What it controls</th><th>When to touch it</th></tr>
+<tr><td>1</td><td><code>.env</code></td><td>All API keys</td><td>Keys expired/revoked</td></tr>
+<tr><td>2</td><td><code>src/firebase.js</code></td><td>Database + Login connection</td><td>Login broken, data not saving</td></tr>
+<tr><td>3</td><td><code>src/utils/geminiScanner.js</code></td><td>AI scanning engine</td><td>Scans failing, wrong results</td></tr>
+<tr><td>4</td><td><code>src/context/AuthContext.jsx</code></td><td>Login logic, user data, points</td><td>Can't login, points not updating</td></tr>
+<tr><td>5</td><td><code>src/App.jsx</code></td><td>Page routing, role switching</td><td>Wrong page showing, blank screen</td></tr>
+<tr><td>6</td><td><code>src/pages/Scanner.jsx</code></td><td>Camera + scan UI</td><td>Camera not opening, results not showing</td></tr>
+<tr><td>7</td><td><code>package.json</code></td><td>List of all dependencies</td><td><code>npm install</code> fails</td></tr>
+</table>
+
+<h2>⚡ 3. How to Run the Project</h2>
+<pre>
+cd E-WASTE          ← go to project folder
+npm install         ← download all libraries (only needed once, or after adding new ones)
+npm run dev         ← start the app locally
+                    ← opens at http://localhost:5173 or :5177
+</pre>
+
+<div class="fix">
+<strong>If <code>npm install</code> fails:</strong> Delete the <code>node_modules</code> folder and <code>package-lock.json</code>, then run <code>npm install</code> again. This fixes 90% of install issues.
+</div>
+<div class="fix">
+<strong>If <code>npm run dev</code> shows errors:</strong> Read the FIRST error line. It usually says which file and which line number has the problem. Fix that one thing.
+</div>
+</div>
+
+<!-- PAGE 2: COMMON BREAKAGES -->
+<div class="page">
+<h2>🔥 4. The 10 Things That Will Break (and How to Fix Each One)</h2>
+
+<h3>❌ 1. "Google Login Not Working"</h3>
+<table>
+<tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr>
+<tr><td>Popup opens then closes instantly</td><td>Domain not authorized in Firebase</td><td>Firebase Console → Authentication → Settings → Authorized Domains → Add <code>localhost</code> and your deployed domain</td></tr>
+<tr><td>"auth/unauthorized-domain" error</td><td>Same as above</td><td>Same as above</td></tr>
+<tr><td>Popup blocked on mobile</td><td>Mobile browsers block popups</td><td>Already handled — AuthContext.jsx auto-switches to redirect on mobile</td></tr>
+<tr><td>Login works but no data loads</td><td>Firestore rules blocking writes</td><td>Firebase Console → Firestore → Rules → Set to allow read/write for testing</td></tr>
+</table>
+
+<h3>❌ 2. "AI Scanner Returns Error"</h3>
+<table>
+<tr><th>Error message</th><th>Cause</th><th>Fix</th></tr>
+<tr><td>"MISSING_KEY"</td><td>.env file missing or VITE_GEMINI_API_KEY is empty</td><td>Check .env file. Get new key from aistudio.google.com</td></tr>
+<tr><td>"RATE_LIMIT" / 429 error</td><td>Too many scans (>15/minute)</td><td>Wait 60 seconds. Or add more keys: VITE_GEMINI_KEY_2, VITE_GEMINI_KEY_3 in .env</td></tr>
+<tr><td>"MODEL_NOT_FOUND"</td><td>Google changed the model name</td><td>In geminiScanner.js line ~248, update MODELS array. Check <a href="https://ai.google.dev/models">ai.google.dev/models</a> for current names</td></tr>
+<tr><td>Shows "ESTIMATED" results</td><td>All API attempts failed, using fallback</td><td>Not really broken — fallback is working as designed. Check internet connection.</td></tr>
+</table>
+
+<h3>❌ 3. "Camera Not Opening"</h3>
+<table>
+<tr><th>Symptom</th><th>Fix</th></tr>
+<tr><td>Black screen with no camera</td><td>Check browser permissions: click the lock icon in URL bar → Camera → Allow</td></tr>
+<tr><td>Works on Chrome, not on Firefox</td><td>Camera API behaves differently. Stick with Chrome for demos.</td></tr>
+<tr><td>"NotAllowedError"</td><td>User denied camera permission. Clear site settings and retry.</td></tr>
+<tr><td>"NotFoundError"</td><td>No camera found. Make sure webcam is connected / not used by another app.</td></tr>
+</table>
+
+<h3>❌ 4. "Points / Leaderboard Not Updating"</h3>
+<div class="fix">
+<strong>Check:</strong> Open browser Console (F12 → Console tab). Look for red errors mentioning "Firestore" or "permission-denied". This means your Firestore security rules are blocking writes. Quick fix for development:
+</div>
+<pre>
+// Firebase Console → Firestore → Rules → Replace with:
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;  // ⚠️ ONLY for testing!
+    }
+  }
+}
+</pre>
+
+<h3>❌ 5. "Blank White Screen"</h3>
+<div class="fix">
+<strong>This means JavaScript crashed.</strong> Open Console (F12) → look for the red error. Common causes:
+<ul>
+<li>Missing import — a file is trying to use something that doesn't exist</li>
+<li>Typo in file name — React is case-sensitive. <code>Scanner.jsx</code> ≠ <code>scanner.jsx</code></li>
+<li>Missing dependency — run <code>npm install</code></li>
+</ul>
+</div>
+
+<h3>❌ 6. "Deployed Site Not Working (Vercel)"</h3>
+<div class="fix">
+<strong>3 things to check on Vercel:</strong>
+<ol>
+<li>Environment Variables: Vercel dashboard → Settings → Environment Variables → Add all 7 VITE_ keys</li>
+<li>Redeploy after adding vars: Vercel → Deployments → Redeploy</li>
+<li>vercel.json exists in root with SPA rewrite rule (already done)</li>
+</ol>
+</div>
+
+<h3>❌ 7-10: Quick Fixes</h3>
+<table>
+<tr><th>Problem</th><th>File</th><th>Fix</th></tr>
+<tr><td>Sidebar not scrollable</td><td>UserSidebar.jsx / RecyclerSidebar.jsx</td><td>Add <code>overflow-y: auto</code> to the sidebar container</td></tr>
+<tr><td>Metal prices showing fallback</td><td>utils/metalPrices.js</td><td>Metals-API free tier expired. Fallback prices still work fine for demo.</td></tr>
+<tr><td>Confetti not showing on submit</td><td>Scanner.jsx</td><td>Check if <code>canvas-confetti</code> is installed: <code>npm list canvas-confetti</code></td></tr>
+<tr><td>Page 404 on refresh (Vercel)</td><td>vercel.json</td><td>Must contain: <code>{"rewrites": [{"source": "/(.*)", "destination": "/index.html"}]}</code></td></tr>
+</table>
+</div>
+
+<!-- PAGE 3: HOW THINGS CONNECT -->
+<div class="page">
+<h2>🔗 5. How The Key Files Connect (Map)</h2>
+
+<p>When something breaks, you need to know which file talks to which:</p>
+
+<pre>
+User clicks "Continue with Google"
+  → Login.jsx calls loginWithGoogle()
+    → AuthContext.jsx runs signInWithPopup()
+      → firebase.js provides the auth connection
+        → .env provides the API keys
+          → Google checks credentials → returns user info
+            → AuthContext saves user to Firestore database
+              → App.jsx sees user is logged in → shows Scanner page
+
+User clicks "Capture" on Scanner
+  → Scanner.jsx captures frame from camera
+    → Calls scanDeviceWithRetry() in geminiScanner.js
+      → geminiScanner.js reads VITE_GEMINI_API_KEY from .env
+        → Sends photo to Google Gemini API
+          → metalPrices.js fetches live Gold/Copper prices
+            → Results calculated and displayed
+              → User clicks "Submit"
+                → AuthContext.jsx updates Firestore: points+, devices+, co2+
+                  → Leaderboard.jsx auto-updates (real-time listener)
+</pre>
+
+<h2>🧠 6. The 5 Concepts You Actually Need to Know</h2>
+
+<h3>1. State = screen updates automatically</h3>
+<pre>
+const [scanning, setScanning] = useState(false);
+// When you call setScanning(true), React redraws the screen
+// to show the scanning animation. You don't manually change HTML.
+</pre>
+
+<h3>2. useEffect = "do this when page loads"</h3>
+<pre>
+useEffect(() => {
+  startCamera();  // runs once when Scanner page opens
+}, []);           // empty [] = only on first load
+</pre>
+
+<h3>3. Context = shared data across all pages</h3>
+<pre>
+// ANY page can do this to get the logged-in user:
+const { currentUser } = useAuth();
+// currentUser has: .displayName, .email, .totalPoints, .devicesRecycled
+</pre>
+
+<h3>4. async/await = "wait for internet response"</h3>
+<pre>
+const result = await scanDevice(photo);  // waits for Google to respond
+// Without "await", you'd get an empty result because the
+// code moves on before Google finishes responding
+</pre>
+
+<h3>5. Environment Variables = secrets</h3>
+<pre>
+// In .env file:    VITE_GEMINI_API_KEY=AIzaSy...
+// In code:         import.meta.env.VITE_GEMINI_API_KEY
+// VITE_ prefix is required. Without it, Vite won't load the variable.
+</pre>
+
+<div class="warn">
+<strong>⚠️ The VITE_ prefix rule:</strong> Every environment variable MUST start with <code>VITE_</code> or your code can't read it. <code>GEMINI_KEY=abc</code> won't work. <code>VITE_GEMINI_KEY=abc</code> will work.
+</div>
+</div>
+
+<!-- PAGE 4: QUICK REFERENCE -->
+<div class="page">
+<h2>📋 7. Quick Reference Card</h2>
+
+<h3>Commands You'll Use</h3>
+<table>
+<tr><th>Command</th><th>When to use</th></tr>
+<tr><td><code>npm run dev</code></td><td>Start the app locally</td></tr>
+<tr><td><code>npm install</code></td><td>After cloning, or after adding a new library to package.json</td></tr>
+<tr><td><code>npm install some-package</code></td><td>Add a new library (e.g., <code>npm install axios</code>)</td></tr>
+<tr><td><code>git add . && git commit -m "message" && git push</code></td><td>Save & upload code to GitHub</td></tr>
+<tr><td><code>git push hackathon master:main --force</code></td><td>Push to the nexora-hackathon/Flow-State repo</td></tr>
+</table>
+
+<h3>Important URLs</h3>
+<table>
+<tr><th>What</th><th>URL</th></tr>
+<tr><td>Firebase Console</td><td><a href="https://console.firebase.google.com">console.firebase.google.com</a></td></tr>
+<tr><td>Get Gemini API Key</td><td><a href="https://aistudio.google.com/app/apikey">aistudio.google.com/app/apikey</a></td></tr>
+<tr><td>GitHub (main)</td><td><a href="https://github.com/MohammedMateenuddin/PUNARNAVA">github.com/MohammedMateenuddin/PUNARNAVA</a></td></tr>
+<tr><td>GitHub (hackathon)</td><td><a href="https://github.com/nexora-hackathon/Flow-State">github.com/nexora-hackathon/Flow-State</a></td></tr>
+<tr><td>Vercel Dashboard</td><td><a href="https://vercel.com/dashboard">vercel.com/dashboard</a></td></tr>
+</table>
+
+<h3>If You Want to Add a New Feature With AI</h3>
+<div class="key">
+<strong>The right way to prompt AI for changes:</strong>
+<ol>
+<li>Tell AI which file to edit (use the table from section 2)</li>
+<li>Tell AI what the file currently does</li>
+<li>Tell AI what you want changed</li>
+<li>Always say: "Don't change anything else in the file"</li>
+</ol>
+<p>Example: <em>"In src/pages/Scanner.jsx, after the scan results are displayed, add a 'Share on WhatsApp' button that sends the device name and scrap value. Don't change anything else."</em></p>
+</div>
+
+<h3>Emergency: Everything is Broken</h3>
+<div class="fix">
+<strong>Nuclear option — reset everything:</strong>
+<pre>
+1. Delete node_modules folder
+2. Delete package-lock.json
+3. Make sure .env file exists with all 7 keys
+4. Run: npm install
+5. Run: npm run dev
+6. If still broken: git stash (saves your changes)
+   Then: git checkout master (goes back to last working version)
+</pre>
+</div>
+
+<h3>Your Firebase Project Details</h3>
+<table>
+<tr><th>Setting</th><th>Value</th></tr>
+<tr><td>Project ID</td><td><code>punarnava-1cf89</code></td></tr>
+<tr><td>Auth Domain</td><td><code>punarnava-1cf89.firebaseapp.com</code></td></tr>
+<tr><td>Database</td><td>Firestore (NoSQL)</td></tr>
+<tr><td>Collection: users</td><td>Stores all user profiles, points, badges</td></tr>
+<tr><td>Collection: users/{uid}/submissions</td><td>Stores individual scan history per user</td></tr>
+</table>
+
+<div class="ok">
+<strong>✅ You're set.</strong> This guide covers every realistic breakage scenario. Keep this PDF handy. When something breaks, check the error table on page 2 — your fix is there.
+</div>
+</div>
+
+<div class="footer">
+  <p style="font-size:1rem;font-weight:900;color:#0f172a">🔧 PUNARNAVA — Developer Survival Guide</p>
+  <p>When it breaks, this doc has the answer.</p>
+</div>
+
+</body>
+</html>

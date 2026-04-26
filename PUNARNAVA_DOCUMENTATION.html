@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PUNARNAVA — Complete Project Documentation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; color: #1a1a2e; line-height: 1.7; background: #fff; }
+  
+  .cover { min-height: 100vh; background: linear-gradient(135deg, #0a0f1a 0%, #0d1b2a 50%, #1b2838 100%); display: flex; align-items: center; justify-content: center; text-align: center; color: white; page-break-after: always; }
+  .cover h1 { font-size: 4rem; font-weight: 900; letter-spacing: -2px; margin-bottom: 0.5rem; }
+  .cover h1 span { color: #00ff88; }
+  .cover .subtitle { font-size: 1.3rem; color: #8892b0; margin-bottom: 2rem; }
+  .cover .tagline { font-size: 1rem; color: #00ff88; letter-spacing: 0.3em; text-transform: uppercase; font-weight: 700; margin-bottom: 3rem; }
+  .cover .meta { color: #5a6a7a; font-size: 0.85rem; }
+
+  .page { max-width: 900px; margin: 0 auto; padding: 60px 50px; page-break-after: always; }
+  h2 { font-size: 1.8rem; font-weight: 900; color: #0a0f1a; margin: 2.5rem 0 1rem; border-bottom: 3px solid #00ff88; padding-bottom: 0.5rem; }
+  h3 { font-size: 1.3rem; font-weight: 700; color: #16213e; margin: 1.8rem 0 0.8rem; }
+  h4 { font-size: 1.1rem; font-weight: 700; color: #0a0f1a; margin: 1.5rem 0 0.5rem; }
+  p { margin-bottom: 1rem; font-size: 0.95rem; }
+  ul, ol { margin: 0.5rem 0 1.2rem 1.5rem; }
+  li { margin-bottom: 0.4rem; font-size: 0.93rem; }
+  strong { color: #0a0f1a; }
+
+  .highlight { background: #f0fff4; border-left: 4px solid #00ff88; padding: 1rem 1.2rem; margin: 1rem 0; border-radius: 0 8px 8px 0; }
+  .warning { background: #fff8f0; border-left: 4px solid #ff9800; padding: 1rem 1.2rem; margin: 1rem 0; border-radius: 0 8px 8px 0; }
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1.5rem 0; }
+  .stat-card { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 12px; padding: 1.2rem; text-align: center; }
+  .stat-card .number { font-size: 1.8rem; font-weight: 900; color: #00cc6a; }
+  .stat-card .label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: #6c757d; margin-top: 0.3rem; }
+
+  .plan-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1.5rem 0; }
+  .plan-card { border: 2px solid #e9ecef; border-radius: 12px; padding: 1.2rem; }
+  .plan-card.popular { border-color: #00cc6a; background: #f0fff4; }
+  .plan-card h4 { margin-top: 0; }
+  .plan-card .price { font-size: 1.5rem; font-weight: 900; color: #00cc6a; }
+
+  .badge-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.5rem; margin: 1rem 0; text-align: center; }
+  .badge-item { padding: 0.8rem 0.3rem; background: #f8f9fa; border-radius: 8px; font-size: 0.7rem; }
+  .badge-item .icon { font-size: 1.5rem; display: block; margin-bottom: 0.3rem; }
+
+  .step-box { display: flex; gap: 1rem; margin: 1rem 0; align-items: flex-start; }
+  .step-num { width: 36px; height: 36px; background: #00cc6a; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; flex-shrink: 0; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+  th { background: #0a0f1a; color: white; padding: 0.7rem 1rem; text-align: left; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td { padding: 0.6rem 1rem; border-bottom: 1px solid #e9ecef; }
+  tr:nth-child(even) { background: #f8f9fa; }
+
+  .demo-script { background: #0a0f1a; color: #e0e0e0; padding: 1.5rem; border-radius: 12px; margin: 1rem 0; }
+  .demo-script h4 { color: #00ff88; margin-top: 1rem; }
+  .demo-script p { color: #b0b8c8; }
+  .demo-script em { color: #00ff88; font-style: normal; }
+
+  .qa { margin: 1rem 0; }
+  .qa .q { font-weight: 700; color: #0a0f1a; margin-bottom: 0.3rem; }
+  .qa .a { color: #4a5568; margin-bottom: 1.2rem; padding-left: 1rem; border-left: 2px solid #e2e8f0; }
+
+  .footer { text-align: center; padding: 3rem; color: #6c757d; font-size: 0.85rem; }
+  .footer .brand { font-size: 1.3rem; font-weight: 900; color: #0a0f1a; }
+
+  @media print {
+    .cover { min-height: 100vh; }
+    .page { padding: 40px 30px; }
+    body { font-size: 11pt; }
+    h2 { font-size: 16pt; }
+  }
+</style>
+</head>
+<body>
+
+<!-- COVER PAGE -->
+<div class="cover">
+  <div>
+    <div style="font-size:5rem; margin-bottom:1rem;">♻️</div>
+    <h1>PUNAR<span>NAVA</span></h1>
+    <p class="subtitle">AI-Powered E-Waste Intelligence Platform</p>
+    <p class="tagline">Recycle · Renew · Restore</p>
+    <p class="meta">Complete Project Documentation<br>Team Nexora · April 2026</p>
+  </div>
+</div>
+
+<!-- PAGE 1: Problem & Solution -->
+<div class="page">
+  <h2>🌍 What is PUNARNAVA?</h2>
+  <p>PUNARNAVA is a mobile-friendly website that helps people recycle their old phones, laptops, and other electronic devices in the smartest way possible. Think of it like Swiggy — but instead of ordering food, you're selling your old electronics to certified recyclers near you.</p>
+  <p>You take a photo of your old device, and our AI (artificial intelligence — a computer brain that can "see" images) instantly tells you what valuable metals are inside it, how much it's worth as scrap, and connects you to the nearest recycler who will pay you for it.</p>
+
+  <h2>😤 The Problem We Are Solving</h2>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="number">3.2M</div><div class="label">Tonnes of e-waste generated in India/year</div></div>
+    <div class="stat-card"><div class="number" style="color:#ff4444;">95%</div><div class="label">Gets dumped or recycled unsafely</div></div>
+    <div class="stat-card"><div class="number">₹1,800+</div><div class="label">Worth of metals inside one laptop</div></div>
+  </div>
+  <ul>
+    <li>India is the <strong>3rd largest e-waste producer</strong> in the world</li>
+    <li>Informal recyclers <strong>burn circuit boards with bare hands</strong> — causing cancer and soil contamination</li>
+    <li>Consumers <strong>don't know</strong> their old devices contain Gold, Copper, and Lithium worth real money</li>
+    <li>Recyclers <strong>don't have tools</strong> to accurately identify what's inside a device before buying</li>
+  </ul>
+
+  <h2>💡 Our Solution — 4 Simple Steps</h2>
+  <div class="step-box"><div class="step-num">1</div><div><strong>Snap a Photo</strong> — Point your camera at any old electronic device</div></div>
+  <div class="step-box"><div class="step-num">2</div><div><strong>AI Identifies Everything</strong> — In 3-5 seconds, Gemini AI lists every material with gram-level precision and live ₹ pricing</div></div>
+  <div class="step-box"><div class="step-num">3</div><div><strong>Connect with Recycler</strong> — Find certified recyclers near you with AI-verified device breakdowns</div></div>
+  <div class="step-box"><div class="step-num">4</div><div><strong>Everyone Wins</strong> — User earns points, recycler earns money, planet gets cleaner</div></div>
+</div>
+
+<!-- PAGE 2: Two Users -->
+<div class="page">
+  <h2>👥 Who Uses This App?</h2>
+
+  <h3>🙋 Regular User (Anyone with old electronics)</h3>
+  <ul>
+    <li><strong>Take a photo</strong> of any old device and get an instant AI report</li>
+    <li><strong>See what it's worth</strong> — scrap value in ₹ based on live metal prices</li>
+    <li><strong>Find nearest recycler</strong> — sorted by distance with Google Maps links</li>
+    <li><strong>Earn points and badges</strong> — gamified progression from Eco Starter to Eco Legend</li>
+    <li><strong>Track environmental impact</strong> — CO2 saved, water saved, energy saved</li>
+  </ul>
+
+  <h3>🏭 Recycler (Scrap dealer / recycling business)</h3>
+  <ul>
+    <li><strong>Live scrap market</strong> — real-time Gold, Copper, Aluminium, Lithium prices</li>
+    <li><strong>AI-verified device intake</strong> — see materials inside each device before buying</li>
+    <li><strong>Business analytics</strong> — monthly intake, revenue trends, material breakdowns</li>
+    <li><strong>Subscription plans</strong> — Starter ₹499/mo, Professional ₹1,999/mo, Enterprise ₹9,999/mo</li>
+    <li><strong>Claim devices</strong> — accept devices from users with pickup preference info</li>
+  </ul>
+
+  <h2>📱 App Pages — User Side</h2>
+
+  <h4>🔬 AI Scanner (Core Feature)</h4>
+  <p>Camera opens → User points at device → Clicks capture → AI analyzes for 3-5 seconds → Results show:</p>
+  <ul>
+    <li><strong>Device Name</strong> — "iPhone 14 Pro Max" with confidence score (85-98%)</li>
+    <li><strong>Material Breakdown</strong> — Gold (0.034g = ₹177), Copper (15g = ₹7), etc.</li>
+    <li><strong>Total Scrap Value</strong> — sum of all materials in ₹</li>
+    <li><strong>Safety Level</strong> — Safe / Moderate / Hazardous</li>
+    <li><strong>CO2 Saved</strong> — e.g., 15.8 kg prevented</li>
+    <li><strong>Disassembly Steps</strong> — safe teardown instructions</li>
+    <li><strong>YouTube Tutorial</strong> — auto-fetched disassembly video</li>
+  </ul>
+
+  <h4>📊 My Impact Dashboard</h4>
+  <p>Three big numbers: Devices Recycled, CO2 Prevented (with tree equivalent), Scrap Value Recovered in ₹. Plus weekly activity chart and additional metrics (Water Saved, Energy Saved, Landfill Diverted).</p>
+
+  <h4>🏆 Leaderboard</h4>
+  <p>Top 3 on a podium, remaining users in a ranked list. Points = 100 + (CO2 saved × 50). Six badge tiers:</p>
+  <div class="badge-grid">
+    <div class="badge-item"><span class="icon">🌿</span>Eco Starter<br>0 pts</div>
+    <div class="badge-item"><span class="icon">🛡️</span>Eco Warrior<br>200 pts</div>
+    <div class="badge-item"><span class="icon">🌱</span>Green Guardian<br>500 pts</div>
+    <div class="badge-item"><span class="icon">🧠</span>Circuit Sage<br>1,000 pts</div>
+    <div class="badge-item"><span class="icon">⛏️</span>Urban Miner<br>2,000 pts</div>
+    <div class="badge-item"><span class="icon">🏆</span>Eco Legend<br>4,000 pts</div>
+  </div>
+</div>
+
+<!-- PAGE 3: Recycler Side -->
+<div class="page">
+  <h2>📱 App Pages — Recycler Side</h2>
+
+  <h4>📈 Market Overview</h4>
+  <table>
+    <tr><th>Material</th><th>Price</th><th>Daily Change</th></tr>
+    <tr><td>Gold (24K)</td><td>₹5,280/gram</td><td style="color:red">▼ -0.8%</td></tr>
+    <tr><td>Copper (Cu)</td><td>₹452/kg</td><td style="color:green">▲ +2.3%</td></tr>
+    <tr><td>Aluminium (Al)</td><td>₹122/kg</td><td style="color:green">▲ +1.5%</td></tr>
+    <tr><td>Lithium (Li)</td><td>₹890/kg</td><td style="color:green">▲ +4.7%</td></tr>
+    <tr><td>Cobalt (Co)</td><td>₹2,840/kg</td><td style="color:red">▼ -0.3%</td></tr>
+    <tr><td>Palladium (Pd)</td><td>₹3,150/gram</td><td style="color:green">▲ +3.1%</td></tr>
+    <tr><td>Silver (Ag)</td><td>₹72/gram</td><td style="color:green">▲ +0.4%</td></tr>
+    <tr><td>Steel Scrap</td><td>₹28/kg</td><td style="color:red">▼ -1.2%</td></tr>
+  </table>
+
+  <h4>🤖 AI Intake System</h4>
+  <p>Recyclers see device cards showing: device name, submitting user, distance, AI confidence %, material list, scrap value, and pickup preference. They click <strong>Claim</strong> to accept or <strong>Reject</strong> to pass.</p>
+
+  <h4>💎 Subscription Plans</h4>
+  <div class="plan-grid">
+    <div class="plan-card">
+      <h4>Starter</h4>
+      <p style="font-size:0.8rem;color:#6c757d">For individual scrap dealers</p>
+      <div class="price">₹499<span style="font-size:0.8rem;color:#999">/mo</span></div>
+      <ul style="font-size:0.8rem; margin-top:0.5rem;">
+        <li>Local consumer network</li>
+        <li>Real-time notifications</li>
+        <li>Standard AI breakdown</li>
+        <li>Basic analytics</li>
+      </ul>
+    </div>
+    <div class="plan-card popular">
+      <h4>Professional ⭐</h4>
+      <p style="font-size:0.8rem;color:#6c757d">For growing businesses</p>
+      <div class="price">₹1,999<span style="font-size:0.8rem;color:#999">/mo</span></div>
+      <ul style="font-size:0.8rem; margin-top:0.5rem;">
+        <li>Everything in Starter</li>
+        <li>Priority AI validation</li>
+        <li>Verified Recycler badge</li>
+        <li>API access for ERP</li>
+        <li>Dedicated manager</li>
+      </ul>
+    </div>
+    <div class="plan-card">
+      <h4>Enterprise</h4>
+      <p style="font-size:0.8rem;color:#6c757d">For corporates</p>
+      <div class="price">₹9,999<span style="font-size:0.8rem;color:#999">/mo</span></div>
+      <ul style="font-size:0.8rem; margin-top:0.5rem;">
+        <li>Everything in Pro</li>
+        <li>Zero transaction fees</li>
+        <li>B2B corporate contracts</li>
+        <li>Predictive analytics</li>
+        <li>White-label portal</li>
+      </ul>
+    </div>
+  </div>
+
+  <h4>📊 Analytics Engine</h4>
+  <p>Bar charts for monthly intake volume, donut charts for material breakdown (Copper 35%, Aluminium 25%, Gold 15%, Lithium 12%), line charts for revenue trends (₹45K → ₹1.25L over 6 months), and an ESG report export button.</p>
+</div>
+
+<!-- PAGE 4: AI & Tech -->
+<div class="page">
+  <h2>🤖 The AI Brain — How It Works (No Code)</h2>
+  <div class="highlight">
+    <p><strong>When you take a photo of your old phone, here's what happens:</strong></p>
+  </div>
+
+  <div class="step-box"><div class="step-num">1</div><div><strong>Photo is prepared</strong> — Your image is converted into a format the AI can read (like translating a picture into a language the computer understands). This happens instantly on your phone.</div></div>
+  <div class="step-box"><div class="step-num">2</div><div><strong>Sent to Google's Gemini AI</strong> — The same AI that powers Google Lens. We tell it: "Identify this device. List every material with weights. Calculate scrap value in ₹. Flag toxic materials. Give disassembly steps."</div></div>
+  <div class="step-box"><div class="step-num">3</div><div><strong>AI analyzes and responds</strong> — Gemini examines the shape, ports, buttons, logos, and sends back a detailed report with device name, materials, weights, and safety info.</div></div>
+  <div class="step-box"><div class="step-num">4</div><div><strong>Live prices applied</strong> — Today's actual metal prices are fetched from a commodity service and multiplied by each material's weight for accurate ₹ values.</div></div>
+  <div class="step-box"><div class="step-num">5</div><div><strong>Results displayed</strong> — Beautiful results card appears in 3-5 seconds with everything you need to know.</div></div>
+
+  <div class="warning">
+    <strong>Backup systems:</strong> If AI fails → backup AI model tries. If both fail → built-in database of 6 device types provides estimated data. The app NEVER crashes.
+  </div>
+
+  <h2>🔗 Services & Tools Used</h2>
+  <table>
+    <tr><th>Tool</th><th>What it is</th><th>What we use it for</th><th>Cost</th></tr>
+    <tr><td><strong>Google Gemini AI</strong></td><td>AI that can "see" photos</td><td>Device identification & material analysis</td><td>Free (1,500/day)</td></tr>
+    <tr><td><strong>Firebase Auth</strong></td><td>Google's login service</td><td>Google login, email accounts</td><td>Free (10K/month)</td></tr>
+    <tr><td><strong>Firestore</strong></td><td>Cloud database</td><td>User data, points, leaderboard</td><td>Free tier</td></tr>
+    <tr><td><strong>Metals-API</strong></td><td>Metal price feed</td><td>Live Gold, Copper, etc. prices</td><td>Free (100/month)</td></tr>
+    <tr><td><strong>React 19</strong></td><td>UI framework by Facebook</td><td>Building the entire interface</td><td>Free</td></tr>
+    <tr><td><strong>Vite 8</strong></td><td>Dev speed tool</td><td>Fast local development</td><td>Free</td></tr>
+  </table>
+
+  <h2>🗄️ What Data We Store</h2>
+  <p>Think of our database like <strong>3 filing cabinets:</strong></p>
+  <div class="highlight"><strong>📁 Cabinet 1 — User Files:</strong> Name, email, photo, role, eco-points, devices recycled, CO2 saved, badge level, global rank. Updates automatically with every scan.</div>
+  <div class="highlight"><strong>📁 Cabinet 2 — Scan Records:</strong> Device name, materials list, scrap value, CO2 saved, which user scanned it, timestamp, status.</div>
+  <div class="highlight"><strong>📁 Cabinet 3 — Recycler Files:</strong> Subscription plan, devices claimed, total value recovered, trial expiry, verified badge status.</div>
+</div>
+
+<!-- PAGE 5: Business & Growth -->
+<div class="page">
+  <h2>💰 Business Model — 5 Revenue Streams</h2>
+
+  <h4>1. Recycler Subscriptions (Main Income)</h4>
+  <p>Recyclers pay monthly fees for platform access — like restaurants pay Swiggy. Three tiers: ₹499, ₹1,999, ₹9,999/month. Just 100 recyclers on Professional = <strong>₹2 lakh/month recurring revenue</strong>.</p>
+
+  <h4>2. Transaction Commission (5-8%)</h4>
+  <p>Every time a recycler claims a device, we take a small cut — like how Swiggy takes a % from every order. On a ₹1,800 laptop: we earn ₹90-144.</p>
+
+  <h4>3. Corporate E-Waste Contracts</h4>
+  <p>Companies like Infosys and TCS have thousands of old devices to dispose of legally. We manage the entire process for an annual fee.</p>
+
+  <h4>4. Carbon Credits</h4>
+  <p>Every recycled device prevents measurable CO2. We track all CO2 saved across users and sell carbon credits in bulk at ₹1,000-2,000 per tonne.</p>
+
+  <h4>5. AI Scanner as a Service</h4>
+  <p>Our AI scanner can be licensed to insurance companies, logistics firms, and recycling apps in other countries — like how Google Maps is used inside Ola and Zomato.</p>
+
+  <h2>📈 Growth Plan</h2>
+  <table>
+    <tr><th>Phase</th><th>Timeline</th><th>Target</th><th>Revenue Goal</th></tr>
+    <tr><td><strong>Phase 1: Bengaluru</strong></td><td>Months 1-6</td><td>500 users, 25 recyclers</td><td>Proof of concept</td></tr>
+    <tr><td><strong>Phase 2: Top 5 Cities</strong></td><td>Months 6-18</td><td>Mumbai, Delhi, Hyderabad, Chennai, Pune</td><td>₹10L/month</td></tr>
+    <tr><td><strong>Phase 3: Pan India</strong></td><td>Months 18-36</td><td>50+ cities + AI API product</td><td>₹50L/month</td></tr>
+  </table>
+
+  <h2>🌐 UN Sustainable Development Goals</h2>
+  <table>
+    <tr><th>SDG</th><th>Goal</th><th>Our Contribution</th></tr>
+    <tr><td><strong>SDG 8</strong></td><td>Decent Work</td><td>Gives informal recyclers access to market pricing, increasing income by 30-50%</td></tr>
+    <tr><td><strong>SDG 10</strong></td><td>Reduced Inequalities</td><td>Small scrap dealers get the same AI tools as large corporations</td></tr>
+    <tr><td><strong>SDG 12</strong></td><td>Responsible Consumption</td><td>Every device diverted from landfill = materials reused in new products</td></tr>
+    <tr><td><strong>SDG 13</strong></td><td>Climate Action</td><td>Real-time CO2 tracking. Every scan prevents measurable carbon emissions</td></tr>
+  </table>
+</div>
+
+<!-- PAGE 6: Demo Script & FAQ -->
+<div class="page">
+  <h2>🚀 5-Minute Demo Script</h2>
+  <div class="demo-script">
+    <h4>Minute 1 — The Problem</h4>
+    <p>"India produces 3.2 million tonnes of e-waste every year. Only 5% gets recycled properly. There's <em>literal gold</em> inside your old phone — being thrown away every day."</p>
+    <h4>Minute 2 — Show Login</h4>
+    <p>"PUNARNAVA serves two types of users." Show User/Recycler toggle. Log in with Google. <em>"One-click login. No forms, no OTPs."</em></p>
+    <h4>Minute 3 — Live Scan (THE WOW MOMENT)</h4>
+    <p>Go to Scanner. Hold up a device. Click Capture. <em>"Watch — our AI identified this as [device] with [confidence]% confidence. Gold: 0.034g worth ₹177. Total scrap: ₹198. CO2 saved: 15.8 kg."</em> Click Submit. Confetti explodes.</p>
+    <h4>Minute 4 — Impact & Leaderboard</h4>
+    <p>Show My Impact dashboard. <em>"I've prevented 156 kg of CO2 — that's 7 trees."</em> Show Leaderboard with badges.</p>
+    <h4>Minute 5 — Recycler Side + Close</h4>
+    <p>Log in as Recycler. Show Market prices. Show Intake cards. <em>"Recyclers see AI-verified devices. No guesswork."</em> Show Subscription plans. <em>"Our revenue: subscriptions, commissions, corporate contracts, carbon credits, AI-as-a-service."</em></p>
+  </div>
+
+  <h2>❓ Judge & Investor FAQ</h2>
+  <div class="qa">
+    <p class="q">Q: How is this different from existing e-waste apps?</p>
+    <p class="a">Most apps are just directories. We use real-time AI vision to identify materials INSIDE a device, calculate scrap value using LIVE prices, and gamify the experience with points and leaderboards.</p>
+
+    <p class="q">Q: How do you make money?</p>
+    <p class="a">Five streams: recycler subscriptions (₹499-9,999/mo), transaction commissions (5-8%), corporate contracts, carbon credits, and AI scanner licensing.</p>
+
+    <p class="q">Q: What stops someone from copying this?</p>
+    <p class="a">Three moats: AI improves with every scan (data network effect), recycler relationships take time to build, and the user-recycler flywheel is hard to replicate.</p>
+
+    <p class="q">Q: Is the AI accurate?</p>
+    <p class="a">85-98% confidence for common devices. Every scan shows the confidence score. If AI fails, a fallback database ensures the app never crashes.</p>
+
+    <p class="q">Q: Can this work outside Bengaluru?</p>
+    <p class="a">Yes — entirely cloud-based. Works anywhere with internet. We plan Hindi, Tamil, Telugu support. Recycler onboarding scales city by city.</p>
+
+    <p class="q">Q: How did you build this?</p>
+    <p class="a">AI-assisted development with React, Firebase, Google Gemini AI, and a metals pricing API. Built in under 2 weeks, proving small teams can build enterprise-grade products.</p>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer" style="page-break-after:avoid;">
+  <p class="brand">♻️ PUNARNAVA</p>
+  <p>Recycle. Renew. Restore.</p>
+  <p style="margin-top:1rem;">Built by Team Nexora · April 2026</p>
+  <p style="margin-top:0.5rem; font-size:0.75rem;">Google Gemini AI · Firebase · React 19 · Metals-API</p>
+</div>
+
+</body>
+</html>

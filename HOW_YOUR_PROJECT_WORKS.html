@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PUNARNAVA — How Your Project Actually Works</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',sans-serif;color:#1e293b;line-height:1.8;background:#fff;font-size:15px}
+  .cover{min-height:100vh;background:linear-gradient(135deg,#0a0f1a,#1a1a2e);display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;page-break-after:always}
+  .cover h1{font-size:3rem;font-weight:900;letter-spacing:-2px}.cover h1 span{color:#00ff88}
+  .cover .sub{color:#8892b0;font-size:1.1rem;margin:1rem 0}.cover .tag{color:#00ff88;font-size:0.85rem;letter-spacing:0.3em;text-transform:uppercase;font-weight:700}
+  .page{max-width:860px;margin:0 auto;padding:50px 40px;page-break-after:always}
+  h2{font-size:1.6rem;font-weight:900;margin:2rem 0 0.8rem;border-bottom:3px solid #00cc6a;padding-bottom:0.4rem;color:#0f172a}
+  h3{font-size:1.2rem;font-weight:700;color:#1e293b;margin:1.5rem 0 0.6rem}
+  h4{font-size:1.05rem;font-weight:700;color:#334155;margin:1.2rem 0 0.4rem}
+  p{margin-bottom:0.9rem}
+  ul,ol{margin:0.5rem 0 1rem 1.3rem}li{margin-bottom:0.35rem}
+  code{background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:0.88rem;color:#e11d48;font-family:'Courier New',monospace}
+  pre{background:#0f172a;color:#e2e8f0;padding:1rem;border-radius:8px;overflow-x:auto;font-size:0.82rem;margin:0.8rem 0;line-height:1.6}
+  .box{border-radius:10px;padding:1rem 1.2rem;margin:1rem 0}
+  .green{background:#f0fdf4;border-left:4px solid #22c55e}
+  .blue{background:#eff6ff;border-left:4px solid #3b82f6}
+  .yellow{background:#fffbeb;border-left:4px solid #f59e0b}
+  .red{background:#fef2f2;border-left:4px solid #ef4444}
+  .purple{background:#faf5ff;border-left:4px solid #a855f7}
+  .diagram{background:#f8fafc;border:2px solid #e2e8f0;border-radius:12px;padding:1.2rem;font-family:'Courier New',monospace;font-size:0.82rem;line-height:1.7;white-space:pre;overflow-x:auto;margin:1rem 0}
+  table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:0.9rem}
+  th{background:#0f172a;color:#fff;padding:0.6rem 0.8rem;text-align:left;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.05em}
+  td{padding:0.5rem 0.8rem;border-bottom:1px solid #e2e8f0}
+  tr:nth-child(even){background:#f8fafc}
+  .footer{text-align:center;padding:2rem;color:#94a3b8;font-size:0.8rem}
+  @media print{.cover{min-height:100vh}.page{padding:30px 25px}body{font-size:10.5pt}}
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div>
+    <div style="font-size:4rem;margin-bottom:1rem">🧠</div>
+    <h1>PUNAR<span>NAVA</span></h1>
+    <p class="sub">How Your Project Actually Works</p>
+    <p class="tag">A guide for the builder who vibe-coded it</p>
+    <p style="color:#475569;margin-top:2rem;font-size:0.85rem">No jargon. No assumptions. Just your code, explained clearly.</p>
+  </div>
+</div>
+
+<!-- PAGE 1 -->
+<div class="page">
+<h2>🧱 What is "Full Stack"? (Your Project Explained)</h2>
+
+<p>Your PUNARNAVA app has <strong>3 layers</strong>, like a sandwich. Every web app in the world has these same layers. Here's what they are and how YOUR code maps to them:</p>
+
+<div class="diagram">
+┌─────────────────────────────────────────────┐
+│           LAYER 1: FRONTEND                 │
+│    (What users SEE and CLICK)               │
+│                                             │
+│    Your files: src/pages/*.jsx              │
+│                src/components/*.jsx          │
+│                src/index.css                │
+│                                             │
+│    Tools: React, TailwindCSS, Framer Motion │
+└──────────────────┬──────────────────────────┘
+                   │ talks to
+┌──────────────────▼──────────────────────────┐
+│           LAYER 2: LOGIC / API              │
+│    (The "brain" that processes things)       │
+│                                             │
+│    Your files: src/utils/geminiScanner.js   │
+│                src/utils/metalPrices.js     │
+│                src/context/AuthContext.jsx   │
+│                src/context/AppContext.jsx    │
+│                                             │
+│    Tools: Google Gemini AI, Metals-API      │
+└──────────────────┬──────────────────────────┘
+                   │ talks to
+┌──────────────────▼──────────────────────────┐
+│           LAYER 3: DATABASE                 │
+│    (Where data is SAVED permanently)        │
+│                                             │
+│    Your files: src/firebase.js              │
+│    Service:    Firebase Firestore (Google)   │
+│                                             │
+│    Stores: Users, Points, Scans, Rankings   │
+└─────────────────────────────────────────────┘
+</div>
+
+<div class="box green">
+<strong>💡 Key Insight:</strong> In traditional full-stack apps, Layer 2 runs on a separate server (called a "backend"). YOUR app is special — it doesn't have a backend server. Instead, your frontend talks DIRECTLY to Firebase and Gemini API. This is called a <strong>"serverless"</strong> architecture. It's simpler, cheaper, and perfect for startups.
+</div>
+
+<h2>📁 Your File Structure — What Each File Does</h2>
+
+<p>Think of your project folder like a house. Each room has a purpose:</p>
+
+<table>
+<tr><th>File / Folder</th><th>What it is</th><th>Plain English</th></tr>
+<tr><td><code>index.html</code></td><td>The front door</td><td>The ONE HTML file. Everything loads into this. React takes over from here.</td></tr>
+<tr><td><code>src/main.jsx</code></td><td>The power switch</td><td>Turns on React, wraps everything in providers (Auth, App, Language).</td></tr>
+<tr><td><code>src/App.jsx</code></td><td>The traffic cop</td><td>Decides: Are you logged in? Are you User or Recycler? Shows the right screens.</td></tr>
+<tr><td><code>src/firebase.js</code></td><td>The key ring</td><td>Connects your app to Firebase (Google's database & login service).</td></tr>
+<tr><td><code>.env</code></td><td>The safe</td><td>Stores secret passwords (API keys). Never shared publicly.</td></tr>
+<tr><td><code>package.json</code></td><td>The shopping list</td><td>Lists every tool/library your project needs. <code>npm install</code> reads this.</td></tr>
+<tr><td><code>vite.config.js</code></td><td>The builder's manual</td><td>Tells Vite how to build and run your app.</td></tr>
+<tr><td><code>tailwind.config.js</code></td><td>The paint guide</td><td>Defines your custom colors (neon-green, electric-blue, deep-dark).</td></tr>
+</table>
+</div>
+
+<!-- PAGE 2 -->
+<div class="page">
+<h2>🔄 How Data Flows Through Your App</h2>
+<p>Let's trace what happens when a user opens your app, logs in, scans a device, and sees their dashboard:</p>
+
+<h3>Step 1: App Starts</h3>
+<div class="diagram">
+Browser loads index.html
+    → main.jsx runs
+        → AuthProvider wraps everything (checks: is someone logged in?)
+            → AppProvider wraps everything (holds scan results)
+                → LanguageProvider wraps everything (English/Hindi)
+                    → App.jsx renders
+                        → "No user logged in" → Show Login page
+</div>
+
+<div class="box blue">
+<strong>What are "Providers"?</strong> Think of them as invisible helpers that sit around your entire app and make data available to ANY page. AuthProvider makes login info available everywhere. AppProvider makes scan results available everywhere. Without providers, you'd have to pass data manually from page to page — like passing a note through 10 students instead of announcing it to the class.
+</div>
+
+<h3>Step 2: User Logs In with Google</h3>
+<div class="diagram">
+User clicks "Continue with Google"
+    → AuthContext.jsx calls Firebase's signInWithPopup()
+        → Google popup opens → User picks their account
+            → Google sends back: name, email, photo, unique ID
+                → AuthContext saves this to Firestore database
+                    → Sets role = "user" or "recycler" (from toggle)
+                        → App.jsx re-renders → Shows UserApp or RecyclerApp
+</div>
+
+<div class="box yellow">
+<strong>What is Firestore?</strong> It's like Google Sheets but for apps. Every user gets a "row" (called a document). Columns include: name, email, points, devicesRecycled, co2Saved, badge. The magic: if you change a value, every screen watching that value updates INSTANTLY — no page refresh needed. This is called <strong>"real-time sync."</strong>
+</div>
+
+<h3>Step 3: User Scans a Device</h3>
+<div class="diagram">
+User points camera at old phone → Clicks "Capture"
+    → Scanner.jsx captures a photo from the video stream
+        → Calls scanDeviceWithRetry() in geminiScanner.js
+            → Photo converted to base64 (text version of image)
+                → Sent to Google Gemini API with a detailed prompt
+                    → Gemini returns JSON: {deviceName, materials, value...}
+                        → metalPrices.js fetches LIVE gold/copper prices
+                            → Scrap value calculated: weight × price
+                                → Results displayed on screen
+                                    → User clicks "Submit"
+                                        → Points added to Firestore
+                                            → Leaderboard updates in real-time
+</div>
+
+<h3>Step 4: Dashboard Shows Impact</h3>
+<div class="diagram">
+User navigates to "My Impact"
+    → Dashboard.jsx reads from AuthContext: currentUser
+        → currentUser.devicesRecycled = 12
+        → currentUser.co2Saved = 156.3
+        → currentUser.totalValue = 4230
+            → AnimatedCounter smoothly counts up to these numbers
+                → Weekly chart distributes devices across days
+                    → Tree equivalent = co2Saved ÷ 22 = 7 trees
+</div>
+</div>
+
+<!-- PAGE 3 -->
+<div class="page">
+<h2>🧩 Key Concepts You Should Know</h2>
+
+<h3>1. What is React?</h3>
+<p>React is a way to build websites using <strong>reusable pieces called "components."</strong> Instead of writing one giant HTML file, you break your app into small, manageable pieces:</p>
+
+<div class="diagram">
+Your App is made of components:
+
+App.jsx (the boss)
+├── UserSidebar.jsx (the navigation menu)
+├── ScrapTicker.jsx (the scrolling price bar at top)
+├── Scanner.jsx (the camera + AI page)
+│   ├── CameraErrorScreen (shown when camera fails)
+│   ├── MaterialBar (one colored bar per material)
+│   └── SafetyBadge (the green/yellow/red safety label)
+├── Dashboard.jsx (the impact numbers)
+│   └── AnimatedCounter.jsx (smoothly counts up numbers)
+├── Leaderboard.jsx (the rankings)
+│   └── PodiumItem (top 3 users display)
+└── Profile.jsx (user info + badges)
+</div>
+
+<div class="box green">
+<strong>Why components matter:</strong> If you want to change how the sidebar looks, you edit ONE file (UserSidebar.jsx). Every page using that sidebar updates automatically. Without components, you'd copy-paste the sidebar code into every page — and fixing a bug means editing it everywhere.
+</div>
+
+<h3>2. What is JSX?</h3>
+<p>JSX is HTML written inside JavaScript. Your <code>.jsx</code> files mix logic and display together:</p>
+<pre>
+// This is JSX — it looks like HTML but it's inside JavaScript
+function Dashboard() {
+  const devicesRecycled = 12;  // ← JavaScript variable
+
+  return (
+    &lt;div&gt;                        {/* ← HTML-like syntax */}
+      &lt;h1&gt;My Impact&lt;/h1&gt;
+      &lt;p&gt;Devices: {devicesRecycled}&lt;/p&gt;  {/* ← {} inserts JS into HTML */}
+    &lt;/div&gt;
+  );
+}
+</pre>
+
+<h3>3. What is State? (useState)</h3>
+<p>State is a variable that, when it changes, <strong>automatically re-draws the screen</strong>. Normal variables don't do this.</p>
+<pre>
+// Normal variable — changing it does NOTHING to the screen
+let count = 0;
+count = 5;  // Screen still shows 0
+
+// State variable — changing it REDRAWS the screen
+const [count, setCount] = useState(0);
+setCount(5);  // Screen instantly shows 5!
+</pre>
+
+<div class="box blue">
+<strong>In your app:</strong> <code>scanning</code>, <code>showResults</code>, <code>error</code>, <code>preview</code> in Scanner.jsx are all state variables. When <code>setScanning(true)</code> is called, the scanning animation appears. When <code>setShowResults(true)</code>, the results card appears. React handles the visual updates automatically.
+</div>
+
+<h3>4. What is useEffect?</h3>
+<p>useEffect runs code <strong>when the page loads</strong> or <strong>when specific data changes</strong>. Think of it as an automatic trigger.</p>
+<pre>
+// "Run this code when the page first loads"
+useEffect(() =&gt; {
+  startCamera();     // Turn on the camera
+}, []);              // [] means "only on first load"
+
+// "Run this code whenever scanResult changes"
+useEffect(() =&gt; {
+  fetchDisassemblyVideo(scanResult.name);
+}, [scanResult]);    // Runs again if scanResult changes
+</pre>
+</div>
+
+<!-- PAGE 4 -->
+<div class="page">
+<h3>5. What is Context? (Your App's Shared Brain)</h3>
+<p>Context solves the problem of <strong>"how do I share data between pages?"</strong></p>
+
+<div class="diagram">
+WITHOUT Context (painful):
+App → passes user to → Sidebar → passes user to → Profile
+App → passes user to → Dashboard
+App → passes user to → Leaderboard
+(You'd have to pass "user" manually through every component)
+
+WITH Context (your app uses this):
+AuthContext holds "currentUser" data
+Any page can grab it instantly with: useAuth()
+
+Scanner.jsx:  const { currentUser } = useAuth();
+Dashboard.jsx: const { currentUser } = useAuth();
+Profile.jsx:  const { currentUser } = useAuth();
+(Everyone reads from the same source — no passing needed)
+</div>
+
+<p>Your app has <strong>3 contexts</strong>:</p>
+<table>
+<tr><th>Context</th><th>File</th><th>What it shares</th></tr>
+<tr><td><code>AuthContext</code></td><td>AuthContext.jsx</td><td>currentUser, role, login/logout functions, points, badges</td></tr>
+<tr><td><code>AppContext</code></td><td>AppContext.jsx</td><td>scanResult, performScan(), global stats</td></tr>
+<tr><td><code>LanguageContext</code></td><td>LanguageContext.jsx</td><td>Current language, t() translation function</td></tr>
+</table>
+
+<h3>6. What is an API? (How Your App Talks to External Services)</h3>
+<p>An API is like a <strong>waiter at a restaurant</strong>. You (the app) tell the waiter (API) what you want. The waiter goes to the kitchen (Google's servers) and brings back your order (data).</p>
+
+<div class="diagram">
+Your app uses 3 APIs:
+
+1. GEMINI API (the AI waiter)
+   You send: a photo + instructions
+   You get back: device name, materials, scrap value, safety info
+   Address: generativelanguage.googleapis.com
+
+2. METALS API (the price waiter)
+   You send: "Give me today's metal prices"
+   You get back: Gold=₹5280/g, Copper=₹452/kg, etc.
+   Address: metals-api.com
+
+3. FIREBASE API (the database waiter)
+   You send: "Save this user's points" or "Get the leaderboard"
+   You get back: confirmation or data
+   Address: firestore.googleapis.com
+</div>
+
+<div class="box yellow">
+<strong>What is an API Key?</strong> It's a password that proves you're allowed to use the API. Without it, the "waiter" refuses to serve you. Your keys are stored in the <code>.env</code> file. The key format looks like: <code>AIzaSy...</code>. If someone steals your key, they can use YOUR free quota — that's why we keep it secret.
+</div>
+
+<h3>7. What is Routing? (How URLs Work in Your App)</h3>
+<p>When you click "My Impact" in the sidebar, the URL changes to <code>/my-impact</code>. But the page doesn't actually reload — React just swaps out the content. This is called <strong>client-side routing</strong>.</p>
+<pre>
+// In App.jsx — this is your route map:
+&lt;Route path="/" element={&lt;Scanner /&gt;} /&gt;         // localhost:5177/
+&lt;Route path="/my-impact" element={&lt;Dashboard /&gt;} /&gt; // localhost:5177/my-impact
+&lt;Route path="/leaderboard" element={&lt;Leaderboard /&gt;} /&gt;
+&lt;Route path="/profile" element={&lt;Profile /&gt;} /&gt;
+</pre>
+</div>
+
+<!-- PAGE 5 -->
+<div class="page">
+<h2>🔬 How the AI Scanner Works (Step by Step)</h2>
+
+<p>This is the most impressive part of your app. Here's the complete journey of a single scan:</p>
+
+<h4>File: <code>src/utils/geminiScanner.js</code></h4>
+
+<div class="box purple">
+<strong>The Pipeline:</strong>
+<ol>
+<li><strong>scanDeviceWithRetry()</strong> — the entry point. Enforces a 4.5-second gap between scans (so you don't exceed 15 requests/minute)</li>
+<li><strong>scanDevice()</strong> — tries every combination of API keys × AI models. If Key 1 + Model 1 fails, it tries Key 1 + Model 2, then Key 2 + Model 1, etc.</li>
+<li><strong>scanDeviceWithModel()</strong> — the actual API call. Converts your photo to base64, attaches a detailed prompt, sends it to Google, and parses the response</li>
+<li><strong>extractJSON()</strong> — cleans up the AI's response (sometimes Gemini adds markdown or extra text around the JSON)</li>
+<li><strong>mapToUI()</strong> — takes the raw AI data and formats it for your screen. Fetches live metal prices and calculates real scrap values</li>
+<li>If EVERYTHING fails → <strong>getFallbackResult()</strong> picks from a built-in database of 6 device types</li>
+</ol>
+</div>
+
+<h4>The Prompt (What You Tell the AI)</h4>
+<p>The quality of your AI results depends entirely on this prompt. Here's the key part:</p>
+<pre>
+"You are an e-waste SCRAP VALUE analyst.
+Analyze this image and identify the electronic device.
+
+IMPORTANT RULES:
+- Scroll wheel + buttons = MOUSE (not laptop)
+- Glass slab with touchscreen = SMARTPHONE
+- Clamshell with keyboard = LAPTOP
+
+PRICING RULE:
+- Give SCRAP value, NOT retail price
+- Gold: ₹5200/g, Copper: ₹450/kg, Aluminium: ₹120/kg
+
+Return ONLY raw JSON: {deviceName, materials, value...}"
+</pre>
+
+<div class="box green">
+<strong>To improve accuracy:</strong> Edit the prompt in <code>geminiScanner.js</code> (line ~263). The more specific your instructions, the better Gemini performs. You can add new device types, adjust pricing rules, or add new output fields.
+</div>
+
+<h2>🔐 How Login Works (AuthContext.jsx)</h2>
+
+<div class="diagram">
+Google Login Flow:
+
+1. User clicks "Continue with Google"
+2. loginWithGoogle() is called in AuthContext.jsx
+3. On desktop: signInWithPopup() → Google popup opens
+   On mobile: signInWithRedirect() → full-page Google redirect
+4. Google authenticates → returns user object (name, email, photo, uid)
+5. saveUserRole() runs:
+   - Checks Firestore: does this user already exist?
+   - If NEW: creates document with points=0, badge="Eco Starter"
+   - If EXISTING: updates lastSeen timestamp
+6. setRole("user") or setRole("recycler") based on toggle
+7. App.jsx sees role is set → renders UserApp or RecyclerApp
+</div>
+
+<h2>📊 How the Leaderboard Updates in Real-Time</h2>
+<pre>
+// In Leaderboard.jsx — this code LISTENS to the database:
+onSnapshot(query(collection(db, 'users'), orderBy('totalPoints')), 
+  (snapshot) =&gt; {
+    // This function runs AUTOMATICALLY whenever ANY user's
+    // points change in the database — no refresh needed!
+    setTopUsers(snapshot.docs.map(doc =&gt; doc.data()));
+  }
+);
+</pre>
+<div class="box blue">
+<strong>Real-time = magic:</strong> If User A scans a device and earns 500 points, User B's leaderboard screen updates within 1 second — without User B doing anything. This is Firestore's <code>onSnapshot</code> feature. It's like a WhatsApp group where messages appear instantly.
+</div>
+</div>
+
+<!-- PAGE 6 -->
+<div class="page">
+<h2>🚀 How to Take This Project to the Next Level</h2>
+
+<h3>Level 1: Quick Wins (1-2 days each)</h3>
+<table>
+<tr><th>Improvement</th><th>What to do</th><th>Which file</th></tr>
+<tr><td>Add more device types to fallback</td><td>Add entries like "printer", "camera", "tablet" to DEVICE_FALLBACK_DB</td><td>geminiScanner.js</td></tr>
+<tr><td>Better AI prompt</td><td>Add more device identification rules to the prompt text</td><td>geminiScanner.js line ~263</td></tr>
+<tr><td>Hindi/Kannada support</td><td>Add translations to LanguageContext.jsx</td><td>LanguageContext.jsx</td></tr>
+<tr><td>More badge levels</td><td>Add new tiers to badgeTiers array in Profile.jsx</td><td>Profile.jsx</td></tr>
+</table>
+
+<h3>Level 2: Meaningful Features (1-2 weeks each)</h3>
+<table>
+<tr><th>Feature</th><th>What you need to learn</th><th>How to start</th></tr>
+<tr><td>Real recycler matching</td><td>Geolocation API</td><td>Use navigator.geolocation to get user's location, store recycler locations in Firestore, sort by distance</td></tr>
+<tr><td>Scan history page</td><td>Firestore subcollections</td><td>Each scan already saves to users/{uid}/submissions. Build a page that reads and displays them.</td></tr>
+<tr><td>Push notifications</td><td>Firebase Cloud Messaging</td><td>Notify recyclers when a new device is available near them</td></tr>
+<tr><td>Image gallery of past scans</td><td>Firebase Storage</td><td>Upload scan photos to Firebase Storage, store URLs in Firestore</td></tr>
+</table>
+
+<h3>Level 3: Production Ready (1-3 months)</h3>
+<table>
+<tr><th>Feature</th><th>What's involved</th></tr>
+<tr><td>Real payments (Razorpay)</td><td>Replace the mock payment modal with Razorpay SDK. Needs a backend server (Node.js) for payment verification.</td></tr>
+<tr><td>Backend server</td><td>Build a Node.js/Express server. Move API keys to the server (more secure). Handle payment webhooks.</td></tr>
+<tr><td>Admin dashboard</td><td>Build a separate admin panel to manage users, recyclers, and view platform analytics.</td></tr>
+<tr><td>Mobile app (React Native)</td><td>Your React skills transfer directly. React Native uses the same concepts but builds Android/iOS apps.</td></tr>
+</table>
+
+<h2>📚 Learning Path — What to Study Next</h2>
+<ol>
+<li><strong>JavaScript basics</strong> — variables, functions, arrays, objects, async/await. You use these everywhere but may not fully understand them yet.</li>
+<li><strong>React fundamentals</strong> — components, props, state, useEffect, context. You already USE all of these — now understand WHY they work.</li>
+<li><strong>Firebase</strong> — Firestore queries, security rules, authentication flows. Your app already uses Firebase — learn to do more with it.</li>
+<li><strong>Node.js</strong> — when you need a real backend server (for payments, email sending, heavy processing).</li>
+<li><strong>Git</strong> — you already use git push. Learn branching, pull requests, and collaboration.</li>
+</ol>
+
+<div class="box green">
+<strong>The best part:</strong> You already have a working full-stack app. Most developers spend months learning before building. You built first and can learn the concepts by understanding your own code. That's actually a faster way to learn — you have real context for every concept.
+</div>
+
+<h2>⚠️ Things to Fix Before Going Live</h2>
+<ul>
+<li><strong>Security rules:</strong> Your Firestore database currently allows anyone to read/write. Add security rules in Firebase Console → Firestore → Rules.</li>
+<li><strong>API key protection:</strong> Move Gemini API calls to a backend server so your key isn't exposed in browser code.</li>
+<li><strong>Real payment gateway:</strong> Replace the mock payment with Razorpay/Stripe.</li>
+<li><strong>Error tracking:</strong> Add Sentry or LogRocket to catch errors from real users.</li>
+<li><strong>Testing:</strong> Add automated tests so changes don't break existing features.</li>
+</ul>
+</div>
+
+<div class="footer">
+  <p style="font-size:1.1rem;font-weight:900;color:#0f172a">♻️ PUNARNAVA</p>
+  <p>You built this. Now you understand it. Next step: make it even better.</p>
+  <p style="margin-top:0.5rem">Team Nexora · April 2026</p>
+</div>
+
+</body>
+</html>
