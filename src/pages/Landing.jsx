@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import AnimatedCounter from '../components/AnimatedCounter';
 
 const features = [
@@ -15,6 +16,10 @@ const fadeUp = { hidden: { opacity: 0, y: 40 }, visible: { opacity: 1, y: 0, tra
 
 export default function Landing() {
   const { globalStats } = useApp();
+  const { currentUser, role } = useAuth();
+  
+  const dashboardPath = role === 'recycler' ? '/market' : '/my-impact';
+  const scannerPath = role === 'recycler' ? '/intake' : '/scanner';
 
   return (
     <div className="min-h-screen pt-8 pb-16 px-4">
@@ -49,11 +54,11 @@ export default function Landing() {
         </motion.p>
 
         <motion.div variants={fadeUp} className="flex flex-wrap justify-center gap-4">
-          <Link to="/scanner" className="btn-primary text-base">
-            🔬 Start Scanning
+          <Link to={currentUser ? scannerPath : "/login"} className="btn-primary text-base">
+            🔬 {currentUser ? (role === 'recycler' ? 'View Intake' : 'Start Scanning') : 'Get Started'}
           </Link>
-          <Link to="/dashboard" className="btn-secondary text-base">
-            📊 View Dashboard
+          <Link to={currentUser ? dashboardPath : "/login"} className="btn-secondary text-base">
+            📊 {currentUser ? 'View Dashboard' : 'Explore Platform'}
           </Link>
         </motion.div>
       </motion.section>

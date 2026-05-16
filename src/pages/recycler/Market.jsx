@@ -1,30 +1,46 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import AnimatedCounter from '../../components/AnimatedCounter';
 import { useLang } from '../../context/LanguageContext';
+import { getScrapRates, formatRate } from '../../utils/metalPrices';
 
 const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.1 } } };
 const fadeUp = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } };
 
-const materialPrices = [
-  { name: 'Gold (24K)', price: '₹5,280', unit: '/gram', change: -0.8, trend: '▼', color: '#FFD700', daily: '₹5,322 → ₹5,280' },
-  { name: 'Copper (Cu)', price: '₹452', unit: '/kg', change: 2.3, trend: '▲', color: '#B87333', daily: '₹442 → ₹452' },
-  { name: 'Aluminium (Al)', price: '₹122', unit: '/kg', change: 1.5, trend: '▲', color: '#C0C0C0', daily: '₹120 → ₹122' },
-  { name: 'Lithium (Li)', price: '₹890', unit: '/kg', change: 4.7, trend: '▲', color: '#00d4ff', daily: '₹850 → ₹890' },
-  { name: 'Cobalt (Co)', price: '₹2,840', unit: '/kg', change: -0.3, trend: '▼', color: '#6366f1', daily: '₹2,848 → ₹2,840' },
-  { name: 'Palladium (Pd)', price: '₹3,150', unit: '/gram', change: 3.1, trend: '▲', color: '#a78bfa', daily: '₹3,055 → ₹3,150' },
-  { name: 'Silver (Ag)', price: '₹72', unit: '/gram', change: 0.4, trend: '▲', color: '#e5e7eb', daily: '₹71.7 → ₹72' },
-  { name: 'Steel Scrap', price: '₹28', unit: '/kg', change: -1.2, trend: '▼', color: '#9ca3af', daily: '₹28.3 → ₹28' },
-];
-
-const marketInsights = [
-  { label: 'Total Scrap Processed', value: '2.4T', unit: 'today', icon: '⚖️', color: '#00cfff' },
-  { label: 'Active Recyclers Online', value: '34', unit: 'India', icon: '🏭', color: '#00e5a0' },
-  { label: 'Avg Scrap Yield / Device', value: '₹1,437', unit: 'this month', icon: '💎', color: '#FFD700' },
-  { label: 'Top Material Demand', value: 'Copper', unit: '+2.3%', icon: '🔥', color: '#B87333' },
-];
-
+  const marketInsights = [
+    { label: 'Total Scrap Processed', value: '2.4T', unit: 'today', icon: '⚖️', color: '#00cfff' },
+    { label: 'Active Recyclers Online', value: '34', unit: 'India', icon: '🏭', color: '#00e5a0' },
+    { label: 'Avg Scrap Yield / Device', value: '₹1,437', unit: 'this month', icon: '💎', color: '#FFD700' },
+    { label: 'Top Material Demand', value: 'Copper', unit: '+2.3%', icon: '🔥', color: '#B87333' },
+  ];
+  
 export default function Market() {
   const { t } = useLang();
+  const [liveRates, setLiveRates] = useState(null);
+
+  useEffect(() => {
+    getScrapRates().then(setLiveRates);
+  }, []);
+
+  const materialPrices = liveRates ? [
+    { name: 'Gold (24K)', price: `₹${liveRates.Gold}`, unit: '/gram', change: -0.8, trend: '▼', color: '#FFD700', daily: `₹${liveRates.Gold + 42} → ₹${liveRates.Gold}` },
+    { name: 'Copper (Cu)', price: formatRate(liveRates.Copper).split('/')[0], unit: '/kg', change: 2.3, trend: '▲', color: '#B87333', daily: '₹442 → ₹452' },
+    { name: 'Aluminium (Al)', price: formatRate(liveRates.Aluminium).split('/')[0], unit: '/kg', change: 1.5, trend: '▲', color: '#C0C0C0', daily: '₹120 → ₹122' },
+    { name: 'Lithium (Li)', price: formatRate(liveRates.Lithium).split('/')[0], unit: '/kg', change: 4.7, trend: '▲', color: '#00d4ff', daily: '₹850 → ₹890' },
+    { name: 'Cobalt (Co)', price: formatRate(liveRates.Cobalt).split('/')[0], unit: '/kg', change: -0.3, trend: '▼', color: '#6366f1', daily: '₹2,848 → ₹2,840' },
+    { name: 'Palladium (Pd)', price: `₹${liveRates.Palladium}`, unit: '/gram', change: 3.1, trend: '▲', color: '#a78bfa', daily: '₹3,055 → ₹3,150' },
+    { name: 'Silver (Ag)', price: `₹${liveRates.Silver}`, unit: '/gram', change: 0.4, trend: '▲', color: '#e5e7eb', daily: '₹71.7 → ₹72' },
+    { name: 'Steel Scrap', price: formatRate(liveRates.Steel).split('/')[0], unit: '/kg', change: -1.2, trend: '▼', color: '#9ca3af', daily: '₹28.3 → ₹28' },
+  ] : [
+    { name: 'Gold (24K)', price: '₹5,280', unit: '/gram', change: -0.8, trend: '▼', color: '#FFD700', daily: '₹5,322 → ₹5,280' },
+    { name: 'Copper (Cu)', price: '₹452', unit: '/kg', change: 2.3, trend: '▲', color: '#B87333', daily: '₹442 → ₹452' },
+    { name: 'Aluminium (Al)', price: '₹122', unit: '/kg', change: 1.5, trend: '▲', color: '#C0C0C0', daily: '₹120 → ₹122' },
+    { name: 'Lithium (Li)', price: '₹890', unit: '/kg', change: 4.7, trend: '▲', color: '#00d4ff', daily: '₹850 → ₹890' },
+    { name: 'Cobalt (Co)', price: '₹2,840', unit: '/kg', change: -0.3, trend: '▼', color: '#6366f1', daily: '₹2,848 → ₹2,840' },
+    { name: 'Palladium (Pd)', price: '₹3,150', unit: '/gram', change: 3.1, trend: '▲', color: '#a78bfa', daily: '₹3,055 → ₹3,150' },
+    { name: 'Silver (Ag)', price: '₹72', unit: '/gram', change: 0.4, trend: '▲', color: '#e5e7eb', daily: '₹71.7 → ₹72' },
+    { name: 'Steel Scrap', price: '₹28', unit: '/kg', change: -1.2, trend: '▼', color: '#9ca3af', daily: '₹28.3 → ₹28' },
+  ];
   return (
     <div className="min-h-screen pt-8 pb-16 px-4">
       <div className="max-w-6xl mx-auto">

@@ -4,7 +4,7 @@
 // Caches for 30 minutes to conserve API calls
 // ═══════════════════════════════════════════════════════════════
 
-const METALS_API_KEY = 'n8qis2gpmhfraer6etry8yzzv0qrdwxlnz1rfmwj5iafoh42twsaijy7bwpv';
+const METALS_API_KEY = import.meta.env.VITE_METALS_API_KEY;
 
 // Fallback rates (₹ per gram) — used when API is unavailable
 const FALLBACK_RATES = {

@@ -245,8 +245,9 @@ async function mapToUI(data, source = "gemini") {
 // CORE SCAN — Direct Fetch with MODEL FALLBACK CHAIN
 // ═══════════════════════════════════════════════════════════════
 const MODELS = [
-  "gemini-2.5-flash",
-  "gemini-2.5-flash-lite"
+  "gemini-1.5-flash",
+  "gemini-1.5-flash-8b",
+  "gemini-1.5-flash-latest"
 ];
 
 async function scanDeviceWithModel(imageFile, modelName, apiKey) {

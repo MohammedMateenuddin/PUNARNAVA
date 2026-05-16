@@ -108,20 +108,56 @@ function RecyclerApp() {
 // ═══════════════════════════════════════════════════
 // MAIN APP — hard split based on role
 // ═══════════════════════════════════════════════════
+import Landing from './pages/Landing';
+
+// ═══════════════════════════════════════════════════
+// MAIN APP — Navigation & Routing
+// ═══════════════════════════════════════════════════
 export default function App() {
   const { currentUser, role } = useAuth();
 
-  // Not logged in → show login
-  if (!currentUser || !role) {
-    return (
-      <div className="min-h-screen mesh-gradient flex items-center justify-center relative">
-        <ParticleBackground />
-        <Login />
-      </div>
-    );
-  }
+  return (
+    <AnimatePresence mode="wait">
+      <Routes>
+        {/* Public Routes */}
+        <Route 
+          path="/" 
+          element={
+            !currentUser || !role ? (
+              <Landing />
+            ) : (
+              <Navigate to={role === 'recycler' ? '/market' : '/scanner'} replace />
+            )
+          } 
+        />
+        <Route 
+          path="/login" 
+          element={
+            !currentUser || !role ? (
+              <div className="min-h-screen mesh-gradient flex items-center justify-center relative">
+                <ParticleBackground />
+                <Login />
+              </div>
+            ) : (
+              <Navigate to={role === 'recycler' ? '/market' : '/scanner'} replace />
+            )
+          } 
+        />
 
-  // Hard split — no toggle possible
-  if (role === 'recycler') return <RecyclerApp />;
-  return <UserApp />;
+        {/* User Protected Routes */}
+        <Route 
+          path="/*" 
+          element={
+            !currentUser || !role ? (
+              <Navigate to="/login" replace />
+            ) : role === 'recycler' ? (
+              <RecyclerApp />
+            ) : (
+              <UserApp />
+            )
+          } 
+        />
+      </Routes>
+    </AnimatePresence>
+  );
 }
