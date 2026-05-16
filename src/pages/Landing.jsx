@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import AnimatedCounter from '../components/AnimatedCounter';
+import ParticleBackground from '../components/ParticleBackground';
 
 const features = [
   { icon: '🔬', title: 'AI Device Scanner', desc: 'Upload any e-waste image and get instant material analysis powered by AI', to: '/scanner' },
