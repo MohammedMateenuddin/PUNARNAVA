@@ -55,8 +55,8 @@ function UserApp() {
         <AnimatePresence mode="wait">
           <motion.div key={location.pathname} {...pageTransition} className="flex-grow">
             <Routes location={location}>
-              <Route path="/" element={<Scanner />} />
-              <Route path="/scanner" element={<Navigate to="/" />} />
+              <Route index element={<Scanner />} />
+              <Route path="/scanner" element={<Scanner />} />
               <Route path="/my-impact" element={<Dashboard />} />
               <Route path="/dashboard" element={<Navigate to="/my-impact" />} />
               <Route path="/profile" element={<Profile />} />
@@ -90,8 +90,8 @@ function RecyclerApp() {
         <AnimatePresence mode="wait">
           <motion.div key={location.pathname} {...pageTransition} className="flex-grow">
             <Routes location={location}>
-              <Route path="/" element={<Market />} />
-              <Route path="/market" element={<Navigate to="/" />} />
+              <Route index element={<Market />} />
+              <Route path="/market" element={<Market />} />
               <Route path="/intake" element={<Intake />} />
               <Route path="/subscriptions" element={<Subscriptions />} />
               <Route path="/recycler-profile" element={<RecyclerProfile />} />

@@ -9,7 +9,7 @@ export default function RecyclerSidebar({ collapsed, setCollapsed }) {
   const { t, lang, setLang } = useLang();
 
   const navLinks = [
-    { to: '/', label: t('market'), icon: '📈' },
+    { to: '/market', label: t('market'), icon: '📈' },
     { to: '/intake', label: t('intake'), icon: '🤖' },
     { to: '/subscriptions', label: t('subscriptions'), icon: '💎' },
     { to: '/recycler-profile', label: t('profile'), icon: '👤' },

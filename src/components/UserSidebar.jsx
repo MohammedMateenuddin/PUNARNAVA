@@ -9,7 +9,7 @@ export default function UserSidebar({ collapsed, setCollapsed }) {
   const { t, lang, setLang } = useLang();
 
   const navLinks = [
-    { to: '/', label: t('aiScanner'), icon: '🔬' },
+    { to: '/scanner', label: t('aiScanner'), icon: '🔬' },
     { to: '/my-impact', label: t('myImpact'), icon: '📊' },
     { to: '/profile', label: t('profile'), icon: '👤' },
     { to: '/leaderboard', label: t('leaderboard'), icon: '🏆' },
