@@ -55,8 +55,8 @@ function UserApp() {
         <AnimatePresence mode="wait">
           <motion.div key={location.pathname} {...pageTransition} className="flex-grow">
             <Routes location={location}>
-              <Route index element={<Scanner />} />
-              <Route path="/scanner" element={<Scanner />} />
+              <Route path="/" element={<Scanner />} />
+              <Route path="/scanner" element={<Navigate to="/" />} />
               <Route path="/my-impact" element={<Dashboard />} />
               <Route path="/dashboard" element={<Navigate to="/my-impact" />} />
               <Route path="/profile" element={<Profile />} />
@@ -90,8 +90,8 @@ function RecyclerApp() {
         <AnimatePresence mode="wait">
           <motion.div key={location.pathname} {...pageTransition} className="flex-grow">
             <Routes location={location}>
-              <Route index element={<Market />} />
-              <Route path="/market" element={<Market />} />
+              <Route path="/" element={<Market />} />
+              <Route path="/market" element={<Navigate to="/" />} />
               <Route path="/intake" element={<Intake />} />
               <Route path="/subscriptions" element={<Subscriptions />} />
               <Route path="/recycler-profile" element={<RecyclerProfile />} />
@@ -119,50 +119,44 @@ export default function App() {
   return (
     <AnimatePresence mode="wait">
       <Routes>
-        {/* Universal Entry Point */}
-        <Route path="/" element={<Landing />} />
-        
-        {/* Auth Gateway */}
+        {/* Public Routes */}
+        <Route 
+          path="/" 
+          element={
+            !currentUser || !role ? (
+              <Landing />
+            ) : (
+              <Navigate to={role === 'recycler' ? '/market' : '/scanner'} replace />
+            )
+          } 
+        />
         <Route 
           path="/login" 
           element={
-            !currentUser ? (
+            !currentUser || !role ? (
               <div className="min-h-screen mesh-gradient flex items-center justify-center relative">
                 <ParticleBackground />
                 <Login />
               </div>
             ) : (
-              <Navigate to="/" replace />
+              <Navigate to={role === 'recycler' ? '/market' : '/scanner'} replace />
             )
           } 
         />
 
-        {/* User Workspace */}
+        {/* User Protected Routes */}
         <Route 
-          path="/scanner/*" 
+          path="/*" 
           element={
-            currentUser && role === 'user' ? (
-              <UserApp />
-            ) : (
+            !currentUser || !role ? (
               <Navigate to="/login" replace />
-            )
-          } 
-        />
-
-        {/* Recycler Workspace */}
-        <Route 
-          path="/market/*" 
-          element={
-            currentUser && role === 'recycler' ? (
+            ) : role === 'recycler' ? (
               <RecyclerApp />
             ) : (
-              <Navigate to="/login" replace />
+              <UserApp />
             )
           } 
         />
-
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AnimatePresence>
   );
