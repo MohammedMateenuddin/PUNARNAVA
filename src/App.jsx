@@ -119,44 +119,50 @@ export default function App() {
   return (
     <AnimatePresence mode="wait">
       <Routes>
-        {/* Public Routes */}
-        <Route 
-          path="/" 
-          element={
-            !currentUser || !role ? (
-              <Landing />
-            ) : (
-              <Navigate to={role === 'recycler' ? '/market' : '/scanner'} replace />
-            )
-          } 
-        />
+        {/* Universal Entry Point */}
+        <Route path="/" element={<Landing />} />
+        
+        {/* Auth Gateway */}
         <Route 
           path="/login" 
           element={
-            !currentUser || !role ? (
+            !currentUser ? (
               <div className="min-h-screen mesh-gradient flex items-center justify-center relative">
                 <ParticleBackground />
                 <Login />
               </div>
             ) : (
-              <Navigate to={role === 'recycler' ? '/market' : '/scanner'} replace />
+              <Navigate to="/" replace />
             )
           } 
         />
 
-        {/* User Protected Routes */}
+        {/* User Workspace */}
         <Route 
-          path="/*" 
+          path="/scanner/*" 
           element={
-            !currentUser || !role ? (
-              <Navigate to="/login" replace />
-            ) : role === 'recycler' ? (
-              <RecyclerApp />
-            ) : (
+            currentUser && role === 'user' ? (
               <UserApp />
+            ) : (
+              <Navigate to="/login" replace />
             )
           } 
         />
+
+        {/* Recycler Workspace */}
+        <Route 
+          path="/market/*" 
+          element={
+            currentUser && role === 'recycler' ? (
+              <RecyclerApp />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } 
+        />
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AnimatePresence>
   );

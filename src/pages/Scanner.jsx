@@ -118,6 +118,7 @@ export default function Scanner() {
   const [rewardData, setRewardData] = useState(null);
   const [activeStep, setActiveStep] = useState(0);
   const [disassemblyVideo, setDisassemblyVideo] = useState(null);
+  const [recyclingPreference, setRecyclingPreference] = useState('Home Pickup'); // 'Home Pickup' | 'Drop-off'
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -291,7 +292,7 @@ export default function Scanner() {
     try {
       // Race against a timeout — Firestore may be offline
       const result = await Promise.race([
-        submitRecycling(scanResult),
+        submitRecycling({ ...scanResult, recyclingPreference }),
         new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
       ]);
       setRewardData(result);
@@ -623,13 +624,22 @@ export default function Scanner() {
 
                         {/* Confirm Recycling */}
                         <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="rounded-2xl p-6 bg-gradient-to-br from-[#00ffc0]/15 to-transparent border border-[#00ffc0]/30">
-                          <div className="flex items-center gap-4 mb-6">
-                            <div className="w-12 h-12 rounded-2xl bg-[#00ffc0] flex items-center justify-center text-2xl shadow-[0_0_20px_rgba(0,255,136,0.4)]">♻️</div>
-                            <div>
-                              <h4 className="font-black text-white text-base tracking-tighter">Ready to process?</h4>
-                              <p className="text-xs text-gray-400">Earn {calculatePoints(scanResult)} pts & save {scanResult.co2Saved}kg CO₂</p>
-                            </div>
+                          {/* Recycling Preference Selection */}
+                          <div className="grid grid-cols-2 gap-3 mb-6">
+                            <button 
+                              onClick={() => setRecyclingPreference('Home Pickup')}
+                              className={`py-3 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all ${recyclingPreference === 'Home Pickup' ? 'bg-[#00ffc0]/20 border-[#00ffc0] text-[#00ffc0]' : 'bg-white/5 border-white/10 text-white/40'}`}
+                            >
+                              🚚 {t('homePickup') || 'Home Pickup'}
+                            </button>
+                            <button 
+                              onClick={() => setRecyclingPreference('Drop-off')}
+                              className={`py-3 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all ${recyclingPreference === 'Drop-off' ? 'bg-[#00ffc0]/20 border-[#00ffc0] text-[#00ffc0]' : 'bg-white/5 border-white/10 text-white/40'}`}
+                            >
+                              📍 {t('dropOff') || 'Drop-off'}
+                            </button>
                           </div>
+
                           <button onClick={handleSubmitRecycling} disabled={submitting} className="w-full py-4 rounded-xl bg-[#00ffc0] text-[#0a0e1a] font-black text-sm uppercase tracking-widest shadow-[0_0_30px_rgba(0,255,136,0.3)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50">
                             {submitting ? t('submitting') : t('submitForRecycling')}
                           </button>
