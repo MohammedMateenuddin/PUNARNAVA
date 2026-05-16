@@ -10,4 +10,16 @@ export default defineConfig({
     port: 5174,
     open: true,
   },
+  build: {
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+          'vendor-utils': ['framer-motion', 'recharts', 'lucide-react'],
+        }
+      }
+    }
+  }
 })
